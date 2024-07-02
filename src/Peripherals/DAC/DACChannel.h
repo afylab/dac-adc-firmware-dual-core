@@ -30,9 +30,7 @@ class DACChannel {
   // initialize is the command INITIALIZE, setup is called in main::setup
   void initialize() {
     digitalWrite(cs_pin, LOW);
-    commsController.sendBytesInTransaction(
-        32, 0,
-        2);  // Write to control register, Reserved byte, Unclamp DAC from GND
+    commsController.sendBytesInTransaction(32, 0, 2);  // Write to control register; Reserved byte; Unclamp DAC from GND
     digitalWrite(cs_pin, HIGH);
     setVoltage(0.0);
   }
@@ -53,8 +51,7 @@ class DACChannel {
     voltageToDecimal(voltage / gain_error - offset_error, &b1, &b2, &b3);
 
     digitalWrite(cs_pin, LOW);
-    commsController.sendBytesInTransaction(b1, b2, b3);  // send command byte to DAC; MS data
-                                            // bits, DAC2; LS 8 data bits, DAC2
+    commsController.sendBytesInTransaction(b1, b2, b3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
 
     digitalWrite(cs_pin, HIGH);
 
@@ -74,8 +71,7 @@ class DACChannel {
     voltageToDecimal(voltage / gain_error - offset_error, &b1, &b2, &b3);
 
     digitalWrite(cs_pin, LOW);
-    commsController.sendBytesInTransaction(b1, b2, b3);  // send command byte to DAC; MS data
-                                            // bits, DAC2; LS 8 data bits, DAC2
+    commsController.sendBytesInTransaction(b1, b2, b3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
 
     return threeByteToVoltage(b1, b2, b3);
@@ -109,8 +105,7 @@ class DACChannel {
     intToThreeBytes(decimal, &b1, &b2, &b3);
 
     digitalWrite(cs_pin, LOW);
-    commsController.sendBytesInTransaction(b1, b2, b3);  // send command byte to DAC; MS data
-                                            // bits, DAC2; LS 8 data bits, DAC2
+    commsController.sendBytesInTransaction(b1, b2, b3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
 
     digitalWrite(ldac, LOW);
@@ -141,10 +136,8 @@ class DACChannel {
     *DB3 = (byte)(decimal & 255);
   }
 
-  int threeByteToInt(
-      byte DB1, byte DB2,
-      byte DB3)  // This gives a 16 bit integer (between +/- 2^16)
-  {
+  // This gives a 16 bit integer (between +/- 2^16)
+  int threeByteToInt( byte DB1, byte DB2, byte DB3) {
     return ((int)(((((DB1 & 15) << 8) | DB2) << 8) | DB3));
   }
 

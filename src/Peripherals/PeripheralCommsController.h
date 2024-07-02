@@ -7,17 +7,13 @@
 class PeripheralCommsController {
  private:
   SPISettings spiSettings;
-  static bool spiInitialized;
 
  public:
   PeripheralCommsController(SPISettings spi_s)
       : spiSettings(spi_s) {}
 
-  void setup() {
-    if (!spiInitialized) {
-      SPI.begin();
-      spiInitialized = true;
-    }
+  static void setup() {
+    SPI.begin();
   }
 
   void beginTransaction() {

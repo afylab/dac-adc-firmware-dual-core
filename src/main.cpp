@@ -14,12 +14,12 @@ FunctionRegistry registry;
 UserIOHandler userIOHandler(registry);
 PeripheralCommsController dacCommsController(DAC_SPI_SETTINGS);
 PeripheralCommsController adcCommsController(ADC_SPI_SETTINGS);
-bool PeripheralCommsController::spiInitialized = false;
 DACController dacController(registry, dacCommsController);
 ADCController adcController(registry, adcCommsController);
 
 void setup() {
   userIOHandler.setup();
+  PeripheralCommsController::setup();
 
   
   for (int i : dac_cs_pins) {
