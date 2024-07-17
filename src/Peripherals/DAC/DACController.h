@@ -29,10 +29,10 @@ class DACController : public Peripheral {
   }
 
   void initializeRegistry() override {
-    REGISTER_MEMBER_FUNCTION_0(registry, this, initialize, "INITIALIZE");
-    REGISTER_MEMBER_FUNCTION_0(registry, this, initialize, "INIT");
-    REGISTER_MEMBER_FUNCTION_2(registry, this, setVoltage, "SET");
-    REGISTER_MEMBER_FUNCTION_1(registry, this, getVoltage, "GET_DAC");
+    REGISTER_MEMBER_FUNCTION_0(registry, initialize, "INITIALIZE");
+    REGISTER_MEMBER_FUNCTION_0(registry, initialize, "INIT");
+    REGISTER_MEMBER_FUNCTION_2(registry, setVoltage, "SET");
+    REGISTER_MEMBER_FUNCTION_1(registry, getVoltage, "GET_DAC");
   }
 
   void addChannel(int cs_pin, int ldac_pin) {
@@ -48,7 +48,6 @@ class DACController : public Peripheral {
   }
 
   void setup() override {
-    commsController.setup();
     initializeRegistry();
     for (auto channel : dac_channels) {
       channel->setup();

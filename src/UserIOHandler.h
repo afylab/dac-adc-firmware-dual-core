@@ -14,7 +14,7 @@ struct UserIOHandler {
 
   void setup() {
     Serial.begin(115200);
-    REGISTER_MEMBER_FUNCTION_0(registry, this, nop, "NOP");
+    REGISTER_MEMBER_FUNCTION_0(registry, nop, "NOP");
   }
 
   OperationResult nop() { return OperationResult::Success("NOP");}

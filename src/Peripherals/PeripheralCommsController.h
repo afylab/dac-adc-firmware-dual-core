@@ -9,24 +9,21 @@ class PeripheralCommsController {
   SPISettings spiSettings;
 
  public:
-  PeripheralCommsController(SPISettings spi_s)
-      : spiSettings(spi_s) {}
+  static bool spiInitialized;
+  PeripheralCommsController(SPISettings spi_s) : spiSettings(spi_s) {}
 
   static void setup() {
-    SPI.begin();
+    if (!spiInitialized) {
+      SPI.begin();
+      spiInitialized = true;
+    }
   }
 
-  void beginTransaction() {
-    SPI.beginTransaction(spiSettings);
-  }
+  void beginTransaction() { SPI.beginTransaction(spiSettings); }
 
-  void endTransaction() {
-    SPI.endTransaction();
-  }
+  void endTransaction() { SPI.endTransaction(); }
 
-  void sendByte(byte b) {
-    SPI.transfer(b);
-  }
+  void sendByte(byte b) { SPI.transfer(b); }
 
   void sendBytes(const byte* data, size_t len) {
     for (size_t i = 0; i < len; ++i) {
@@ -70,4 +67,10 @@ class PeripheralCommsController {
       data[i] = SPI.transfer(0);
     }
   }
+
+  void transfer(void* buf, size_t count) { SPI.transfer(buf, count); }
+
+  void transfer(uint8_t data) { SPI.transfer(data); }
 };
+
+bool PeripheralCommsController::spiInitialized = false;

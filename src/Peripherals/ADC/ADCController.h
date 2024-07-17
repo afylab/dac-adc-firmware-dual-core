@@ -25,7 +25,6 @@ class ADCController : public Peripheral {
   }
 
   void setup() override {
-    commsController.setup();
     initializeRegistry();
     for (auto board : adc_boards) {
       board->setup();
@@ -33,7 +32,8 @@ class ADCController : public Peripheral {
   }
 
   void initializeRegistry() override {
-    REGISTER_MEMBER_FUNCTION_1(registry, this, readChannelVoltage, "GET_ADC");
+    REGISTER_MEMBER_FUNCTION_1(registry, readChannelVoltage, "GET_ADC");
+    REGISTER_MEMBER_FUNCTION_1(registry, readChannelVoltageNew, "GET_ADC_NEW");
   }
 
   void addBoard(int data_sync_pin, int data_ready, int reset_pin) {
@@ -60,6 +60,16 @@ class ADCController : public Peripheral {
     if (isChannelIndexValid(channel_index)) {
       return OperationResult::Success(String(
           adc_boards[getBoardIndexFromGlobalIndex(channel_index)]->readVoltage(
+              getChannelIndexFromGlobalIndex(channel_index)), 6));
+    } else {
+      return OperationResult::Failure("Invalid channel index");
+    }
+  }
+
+  OperationResult readChannelVoltageNew(int channel_index) {
+    if (isChannelIndexValid(channel_index)) {
+      return OperationResult::Success(String(
+          adc_boards[getBoardIndexFromGlobalIndex(channel_index)]->readVoltageNew(
               getChannelIndexFromGlobalIndex(channel_index)), 6));
     } else {
       return OperationResult::Failure("Invalid channel index");

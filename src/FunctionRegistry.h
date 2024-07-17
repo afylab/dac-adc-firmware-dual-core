@@ -21,24 +21,11 @@ class FunctionRegistry {
 
     FunctionEntry(const String& n,
                   std::function<OperationResult(const std::vector<float>&)> f,
-                  int ac, bool iv)
-        : name(n), func(f), argCount(ac), is_void(iv) {}
+                  int ac)
+        : name(n), func(f), argCount(ac) {}
   };
   std::vector<FunctionEntry> functions;
 
-  template <typename T>
-  struct is_void_return {
-    template <typename U>
-    static char test(typename std::enable_if<
-                     std::is_void<decltype(std::declval<U>()(
-                         std::declval<const std::vector<float>&>()))>::value,
-                     int>::type);
-
-    template <typename U>
-    static long test(...);
-
-    static const bool value = sizeof(test<T>(0)) == 1;
-  };
 
  public:
   template <typename Func>
@@ -46,18 +33,8 @@ class FunctionRegistry {
     String upper_name = name;
     upper_name.toUpperCase();
 
-    auto wrapper = [func = std::forward<Func>(func)](
-                       const std::vector<float>& args) -> OperationResult {
-      if (is_void_return<decltype(func)>::value) {
-        func(args);
-        return OperationResult::Success();
-      } else {
-        return func(args);
-      }
-    };
 
-    functions.emplace_back(upper_name, wrapper, argCount,
-                           is_void_return<Func>::value);
+    functions.emplace_back(upper_name, func, argCount);
   }
 
   ExecuteResult execute(const String& name, const std::vector<float>& args,

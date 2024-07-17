@@ -2,7 +2,7 @@
 #include "FunctionRegistry.h"
 #include "Peripherals/OperationResult.h"
 
-#define REGISTER_MEMBER_FUNCTION_VECTOR(registry, className, functionName, \
+#define REGISTER_MEMBER_FUNCTION_VECTOR(registry, functionName, \
                                         commandName)                       \
   registry.registerFunction(                                               \
       commandName,                                                         \
@@ -11,7 +11,7 @@
       },                                                                   \
       -1)
 
-#define REGISTER_MEMBER_FUNCTION_0(registry, className, functionName, \
+#define REGISTER_MEMBER_FUNCTION_0(registry, functionName, \
                                    commandName)                       \
   registry.registerFunction(                                          \
       commandName,                                                    \
@@ -20,7 +20,7 @@
       },                                                              \
       0)
 
-#define REGISTER_MEMBER_FUNCTION_1(registry, className, functionName, \
+#define REGISTER_MEMBER_FUNCTION_1(registry, functionName, \
                                    commandName)                       \
   registry.registerFunction(                                          \
       commandName,                                                    \
@@ -29,7 +29,7 @@
       },                                                              \
       1)
 
-#define REGISTER_MEMBER_FUNCTION_2(registry, className, functionName, \
+#define REGISTER_MEMBER_FUNCTION_2(registry, functionName, \
                                    commandName)                       \
   registry.registerFunction(                                          \
       commandName,                                                    \
@@ -39,7 +39,7 @@
       },                                                              \
       2)
 
-#define REGISTER_MEMBER_FUNCTION_3(registry, className, functionName, \
+#define REGISTER_MEMBER_FUNCTION_3(registry, functionName, \
                                    commandName)                       \
   registry.registerFunction(                                          \
       commandName,                                                    \
@@ -50,7 +50,7 @@
       },                                                              \
       3)
 
-#define REGISTER_MEMBER_FUNCTION_4(registry, className, functionName,  \
+#define REGISTER_MEMBER_FUNCTION_4(registry, functionName,  \
                                    commandName)                        \
   registry.registerFunction(                                           \
       commandName,                                                     \
