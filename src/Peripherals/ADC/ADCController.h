@@ -75,4 +75,13 @@ class ADCController : public Peripheral {
       return OperationResult::Failure("Invalid channel index");
     }
   }
+
+  uint16_t getConversionData(int adc_channel) {
+    return adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
+        ->getConversionData(getChannelIndexFromGlobalIndex(adc_channel));
+  }
+
+  float getVoltageData(int adc_channel) {
+    return ADC2DOUBLE(getConversionData(adc_channel));
+  }
 };

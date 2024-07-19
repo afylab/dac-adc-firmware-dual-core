@@ -54,6 +54,13 @@ class DACController : public Peripheral {
     }
   }
 
+  DACChannel* getChannel(int channel_index) {
+    if (!isChannelIndexValid(channel_index)) {
+      return nullptr;
+    }
+    return dac_channels[channel_index];
+  }
+
   bool isChannelIndexValid(int channelIndex) {
     return channelIndex >= 0 &&
            static_cast<size_t>(channelIndex) < dac_channels.size();

@@ -21,6 +21,8 @@
 #define ADDR_ADCZEROSCALECAL 0x6
 #define ADDR_ADCFULLSCALE 0x7
 
+#define DUMP_MODE 1 << 3
+
 // Address macro functions, returns address for desired register of selected
 // channel (0-3), Table 11
 #define ADDR_CHANNELDATA(adc_channel) (0x8 + adc_channel)
@@ -51,7 +53,7 @@
 
 class ADCBoard {
  private:
-  int sync_pin;
+  int cs_pin;
   int data_ready_pin;
   int reset_pin;
   PeripheralCommsController &commsController;
@@ -82,9 +84,9 @@ class ADCBoard {
   }
 
  public:
-  ADCBoard(PeripheralCommsController &commsController, int sync_pin,
+  ADCBoard(PeripheralCommsController &commsController, int cs_pin,
            int data_ready_pin, int reset_pin)
-      : sync_pin(sync_pin),
+      : cs_pin(cs_pin),
         data_ready_pin(data_ready_pin),
         reset_pin(reset_pin),
         commsController(commsController) {}
@@ -92,8 +94,8 @@ class ADCBoard {
   void setup() {
     pinMode(reset_pin, OUTPUT);
     pinMode(data_ready_pin, INPUT);
-    pinMode(sync_pin, OUTPUT);
-    digitalWrite(sync_pin, HIGH);
+    pinMode(cs_pin, OUTPUT);
+    digitalWrite(cs_pin, HIGH);
 
     // Resets ADC on startup.
     digitalWrite(reset_pin, HIGH);
@@ -155,28 +157,28 @@ class ADCBoard {
   }
 
   void sendByte(byte data) {
-    digitalWrite(sync_pin, LOW);
+    digitalWrite(cs_pin, LOW);
     commsController.sendByte(data);
-    digitalWrite(sync_pin, HIGH);
+    digitalWrite(cs_pin, HIGH);
   }
 
   byte receiveByte() {
-    digitalWrite(sync_pin, LOW);
+    digitalWrite(cs_pin, LOW);
     byte data = commsController.receiveByte();
-    digitalWrite(sync_pin, HIGH);
+    digitalWrite(cs_pin, HIGH);
     return data;
   }
 
   void transfer(void *buf, size_t count) {
-    digitalWrite(sync_pin, LOW);
+    digitalWrite(cs_pin, LOW);
     commsController.transfer(buf, count);
-    digitalWrite(sync_pin, HIGH);
+    digitalWrite(cs_pin, HIGH);
   }
 
   void transfer(uint8_t data) {
-    digitalWrite(sync_pin, LOW);
+    digitalWrite(cs_pin, LOW);
     commsController.transfer(data);
-    digitalWrite(sync_pin, HIGH);
+    digitalWrite(cs_pin, HIGH);
   }
 
   // return ADC status register, pg. 16
@@ -237,18 +239,20 @@ class ADCBoard {
   }
 
   uint16_t getConversionData(int adc_channel) {
-    uint8_t data_array, upper, lower;
+    byte data_array, upper, lower;
 
     // setup communication register for reading channel data
     data_array = READ | ADDR_CHANNELDATA(adc_channel);
 
     // write to the communication register
     commsController.beginTransaction();
-    transfer(data_array);
+    digitalWrite(cs_pin, LOW);
 
+    sendByte(data_array);
     // read upper and lower bytes of channel data register (16 bit mode)
     upper = commsController.receiveByte();
     lower = commsController.receiveByte();
+    digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
 
     uint16_t result = upper << 8 | lower;
