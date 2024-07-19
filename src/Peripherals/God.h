@@ -44,7 +44,7 @@ class God {
     x = 0;
     // Convert to microseconds and ensure it's within the valid range
     uint32_t interval_us = static_cast<uint32_t>(interval_ms * 1000);
-    if (interval_us < 1 || interval_us > 4294967295) {
+    if (interval_us < 1) {
       return OperationResult::Failure("Invalid interval");
     }
 
