@@ -219,7 +219,7 @@ class ADCBoard {
   }
 
   // tells the ADC to start a continous conversion on the passed channel
-  void startContinousConversion(int adc_channel) {
+  void startContinuousConversion(int adc_channel) {
     uint8_t data_array[4];
 
     // address the channel setup register and write to it
@@ -238,6 +238,18 @@ class ADCBoard {
     // data is ready when _rdy goes low
   }
 
+  void setConversionTime(int adc_channel, int chop, int fw) {
+    byte chop_byte = chop == 1 ? 0x80 : 0x00;
+    byte send = chop_byte | static_cast<byte>(fw);
+    digitalWrite(cs_pin, LOW);
+    commsController.beginTransaction();
+    commsController.transfer(WRITE | ADDR_CHANNELCONVERSIONTIME(adc_channel));
+    commsController.transfer(send);
+    commsController.endTransaction();
+    digitalWrite(cs_pin, HIGH);
+    Serial.println(send);
+  }
+
   uint16_t getConversionData(int adc_channel) {
     byte data_array, upper, lower;
 
@@ -246,9 +258,8 @@ class ADCBoard {
 
     // write to the communication register
     commsController.beginTransaction();
-    digitalWrite(cs_pin, LOW);
-
     sendByte(data_array);
+    digitalWrite(cs_pin, LOW);
     // read upper and lower bytes of channel data register (16 bit mode)
     upper = commsController.receiveByte();
     lower = commsController.receiveByte();

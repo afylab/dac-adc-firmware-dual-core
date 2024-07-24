@@ -29,8 +29,9 @@ class DACChannel {
 
   // initialize is the command INITIALIZE, setup is called in main::setup
   void initialize() {
+    byte bytesToSend[3] = {32, 0, 2}; // Write to control register; Reserved byte; Unclamp DAC from GND
     digitalWrite(cs_pin, LOW);
-    commsController.sendBytesInTransaction(32, 0, 2);  // Write to control register; Reserved byte; Unclamp DAC from GND
+    commsController.transferInTransaction(bytesToSend, 3);
     digitalWrite(cs_pin, HIGH);
     setVoltage(0.0);
   }
@@ -43,6 +44,7 @@ class DACChannel {
     digitalWrite(ldac, HIGH);
   }
 
+
   float setVoltage(float voltage) {
     byte b1;
     byte b2;
@@ -50,8 +52,12 @@ class DACChannel {
 
     voltageToDecimal(voltage / gain_error - offset_error, &b1, &b2, &b3);
 
+    byte bytesToSend[3] = {b1, b2, b3};
+
+
     digitalWrite(cs_pin, LOW);
-    commsController.sendBytesInTransaction(b1, b2, b3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
+
+    commsController.transferInTransaction(bytesToSend, 3); // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
 
     digitalWrite(cs_pin, HIGH);
 
@@ -70,8 +76,10 @@ class DACChannel {
 
     voltageToDecimal(voltage / gain_error - offset_error, &b1, &b2, &b3);
 
+    byte bytesToSend[3] = {b1, b2, b3};
+
     digitalWrite(cs_pin, LOW);
-    commsController.sendBytesInTransaction(b1, b2, b3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
+    commsController.transferInTransaction(bytesToSend, 3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
 
     return threeByteToVoltage(b1, b2, b3);
@@ -104,8 +112,10 @@ class DACChannel {
 
     intToThreeBytes(decimal, &b1, &b2, &b3);
 
+    byte bytesToSend[3] = {b1, b2, b3};
+
     digitalWrite(cs_pin, LOW);
-    commsController.sendBytesInTransaction(b1, b2, b3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
+    commsController.transferInTransaction(bytesToSend, 3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
 
     digitalWrite(ldac, LOW);

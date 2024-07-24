@@ -3,9 +3,7 @@
 #include <Arduino.h>
 #include <Peripherals/ADC/ADCController.h>
 #include <Peripherals/DAC/DACController.h>
-#include <Portenta_H7_TimerInterrupt.h>
 
-#include "Portenta_H7_ISR_Timer.hpp"
 
 class God {
  private:
@@ -13,64 +11,91 @@ class God {
   DACController& dacController;
   ADCController& adcController;
 
-  Portenta_H7_Timer ITimer;
-
-  volatile int x;
-
-  static God* instance; // Monotheistic
 
  public:
   God(FunctionRegistry& registry, DACController& dacController,
       ADCController& adcController)
       : registry(registry),
         dacController(dacController),
-        adcController(adcController),
-        ITimer(TIM15),
-        x(0) {
-    instance = this;
+        adcController(adcController)
+        {
   }
 
   void setup() {
     initializeRegistry();
-    pinMode(LED_BUILTIN, OUTPUT);
   }
 
   void initializeRegistry() {
-    REGISTER_MEMBER_FUNCTION_1(registry, thing, "THING");
-    REGISTER_MEMBER_FUNCTION_0(registry, getX, "GETX");
+    REGISTER_MEMBER_FUNCTION_7(registry, thing, "THING");
+    REGISTER_MEMBER_FUNCTION_0(registry, printData, "PRINT_DATA");
   }
 
-  OperationResult thing(float interval_ms) {
-    x = 0;
+  std::vector<float> saved_data;
+
+  OperationResult thing(int adcChannel, int dacChannel, float v0, float vf,
+                        int numSteps, uint32_t dac_interval_us,
+                        uint32_t adc_interval_us) {
+    saved_data.clear();
     // Convert to microseconds and ensure it's within the valid range
-    uint32_t interval_us = static_cast<uint32_t>(interval_ms * 1000);
-    if (interval_us < 1) {
+    // uint32_t adc_interval_us = static_cast<uint32_t>(adc_interval_ms * 1000);
+    // uint32_t dac_interval_us = static_cast<uint32_t>(dac_interval_ms * 1000);
+    if (adc_interval_us < 1 || dac_interval_us < 1) {
       return OperationResult::Failure("Invalid interval");
     }
 
-    if (!ITimer.attachInterruptInterval(interval_us, God::staticTimerHandler)) {
-      return OperationResult::Failure("Failed to attach timer interrupt");
+    adcController.startContinuousConversion(adcChannel);
+
+    volatile int steps = 0;
+    volatile int x = 0;
+
+    int saved_data_size = 2 * numSteps * dac_interval_us / adc_interval_us;
+    volatile float* data = new volatile float[saved_data_size];
+
+
+    DACChannel* dac = dacController.getChannel(dacChannel);
+    // dac->setVoltage(v0);
+    // dac->setVoltage(v0);
+    // dacController.setVoltage(dacChannel, v0);
+    ulong startTimeMicros = micros();
+    bool start = false;
+    ulong timeOffset = 0;
+    while (x < saved_data_size) {
+      ulong timeMicros = micros() - startTimeMicros;
+      if (start && timeMicros % adc_interval_us == 0) {
+        if (x==0) {
+          timeOffset = timeMicros;
+        }
+        data[x] = timeMicros - timeOffset;
+        data[x+1] = adcController.getVoltageData(adcChannel);
+        x+=2;
+      }
+      if (steps < numSteps && timeMicros % dac_interval_us == 0) {
+        float desiredVoltage = v0 + (vf - v0) * steps / (numSteps - 1);
+        // dac->setVoltage(desiredVoltage);
+        dac->setVoltage(desiredVoltage);
+        // dacController.setVoltage(dacChannel, desiredVoltage);
+        steps++;
+          start = true;
+      }
+      
     }
 
-    return OperationResult::Success("Timer interrupt attached");
-  }
-
-
-  void timerHandler() {
-    x += 1;
-    digitalWrite(LED_BUILTIN, x % 2);
-  }
-
-  // Static wrapper for the timer handler
-  static void staticTimerHandler() {
-    if (instance) {
-      instance->timerHandler();
+    for (int i = 0; i < saved_data_size; i++) {
+      saved_data.push_back(static_cast<float>(data[i]));
     }
+
+    return OperationResult::Success("Done, x: " + String(x) +
+                                    ", steps: " + String(steps));
   }
 
-  OperationResult getX() { return OperationResult::Success(String(x)); }
+
+  OperationResult printData() {
+    Serial.println("Printing data:");
+    for (size_t i = 0; i < saved_data.size(); i++) {
+      Serial.println(saved_data[i], 6);
+    }
+    return OperationResult::Success("Done");
+  }
+
 
 };
-
-// Only one God allowed, we're not heretics
-God* God::instance = nullptr;

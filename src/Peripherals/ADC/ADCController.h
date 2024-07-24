@@ -34,6 +34,7 @@ class ADCController : public Peripheral {
   void initializeRegistry() override {
     REGISTER_MEMBER_FUNCTION_1(registry, readChannelVoltage, "GET_ADC");
     REGISTER_MEMBER_FUNCTION_1(registry, readChannelVoltageNew, "GET_ADC_NEW");
+    REGISTER_MEMBER_FUNCTION_3(registry, setConversionTime, "SET_CONVERSION_TIME");
   }
 
   void addBoard(int data_sync_pin, int data_ready, int reset_pin) {
@@ -81,7 +82,19 @@ class ADCController : public Peripheral {
         ->getConversionData(getChannelIndexFromGlobalIndex(adc_channel));
   }
 
+  OperationResult setConversionTime(int adc_channel, bool chop, int fw) {
+    adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
+        ->setConversionTime(getChannelIndexFromGlobalIndex(adc_channel), chop,
+                            fw);
+    return OperationResult::Success("Done");
+  }
+
   float getVoltageData(int adc_channel) {
     return ADC2DOUBLE(getConversionData(adc_channel));
+  }
+
+  void startContinuousConversion(int adc_channel) {
+    adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
+        ->startContinuousConversion(getChannelIndexFromGlobalIndex(adc_channel));
   }
 };
