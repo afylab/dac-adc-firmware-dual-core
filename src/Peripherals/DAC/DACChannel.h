@@ -29,10 +29,14 @@ class DACChannel {
 
   // initialize is the command INITIALIZE, setup is called in main::setup
   void initialize() {
-    byte bytesToSend[3] = {32, 0, 2}; // Write to control register; Reserved byte; Unclamp DAC from GND
+    byte bytesToSend[3] = {
+        32, 0,
+        2};  // Write to control register; Reserved byte; Unclamp DAC from GND
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transferInTransaction(bytesToSend, 3);
+    commsController.transfer(bytesToSend, 3);
     digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
     setVoltage(0.0);
   }
 
@@ -44,7 +48,6 @@ class DACChannel {
     digitalWrite(ldac, HIGH);
   }
 
-
   float setVoltage(float voltage) {
     byte b1;
     byte b2;
@@ -54,12 +57,13 @@ class DACChannel {
 
     byte bytesToSend[3] = {b1, b2, b3};
 
-
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-
-    commsController.transferInTransaction(bytesToSend, 3); // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
-
+    commsController.transfer(bytesToSend,
+                             3);  // send command byte to DAC; MS data bits,
+                                  // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
 
     digitalWrite(ldac, LOW);
     digitalWrite(ldac, HIGH);
@@ -78,9 +82,13 @@ class DACChannel {
 
     byte bytesToSend[3] = {b1, b2, b3};
 
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transferInTransaction(bytesToSend, 3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
+    commsController.transfer(bytesToSend,
+                             3);  // send command byte to DAC; MS data bits,
+                                  // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
 
     return threeByteToVoltage(b1, b2, b3);
   }
@@ -114,9 +122,13 @@ class DACChannel {
 
     byte bytesToSend[3] = {b1, b2, b3};
 
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transferInTransaction(bytesToSend, 3);  // send command byte to DAC; MS data bits, DAC2; LS 8 data bits, DAC2
+    commsController.transfer(bytesToSend,
+                             3);  // send command byte to DAC; MS data bits,
+                                  // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
 
     digitalWrite(ldac, LOW);
 
@@ -147,7 +159,7 @@ class DACChannel {
   }
 
   // This gives a 16 bit integer (between +/- 2^16)
-  int threeByteToInt( byte DB1, byte DB2, byte DB3) {
+  int threeByteToInt(byte DB1, byte DB2, byte DB3) {
     return ((int)(((((DB1 & 15) << 8) | DB2) << 8) | DB3));
   }
 

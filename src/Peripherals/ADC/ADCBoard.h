@@ -112,23 +112,24 @@ class ADCBoard {
     byte o3;
     int ovr;
     commsController.beginTransaction();
-    sendByte(0x38 + channel_index);  // Indicates comm register to access
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(0x38 + channel_index);  // Indicates comm register to access
                                      // mode register with channel
 
-    sendByte(0x48);  // Indicates mode register to start
+    commsController.transfer(0x48);  // Indicates mode register to start
                      // single convertion in dump mode
 
     waitDataReady();  // Waits until convertion finishes
 
-    sendByte(0x48 + channel_index);  // Indcates comm register to read
+    commsController.transfer(0x48 + channel_index);  // Indcates comm register to read
                                      // data channel data register
 
-    statusbyte = receiveByte();  // Reads Channel 'ch' status
+    statusbyte = commsController.receiveByte();  // Reads Channel 'ch' status
 
-    o2 = receiveByte();  // Reads first byte
+    o2 = commsController.receiveByte();  // Reads first byte
 
-    o3 = receiveByte();  // Reads second byte
-
+    o3 = commsController.receiveByte();  // Reads second byte
+    digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
 
     ovr = statusbyte & 1;
@@ -156,30 +157,6 @@ class ADCBoard {
     return convertToVoltage(data);
   }
 
-  void sendByte(byte data) {
-    digitalWrite(cs_pin, LOW);
-    commsController.sendByte(data);
-    digitalWrite(cs_pin, HIGH);
-  }
-
-  byte receiveByte() {
-    digitalWrite(cs_pin, LOW);
-    byte data = commsController.receiveByte();
-    digitalWrite(cs_pin, HIGH);
-    return data;
-  }
-
-  void transfer(void *buf, size_t count) {
-    digitalWrite(cs_pin, LOW);
-    commsController.transfer(buf, count);
-    digitalWrite(cs_pin, HIGH);
-  }
-
-  void transfer(uint8_t data) {
-    digitalWrite(cs_pin, LOW);
-    commsController.transfer(data);
-    digitalWrite(cs_pin, HIGH);
-  }
 
   // return ADC status register, pg. 16
   uint8_t getADCStatus() {
@@ -188,8 +165,10 @@ class ADCBoard {
     data_array = READ | ADDR_ADCSTATUS;
 
     commsController.beginTransaction();
-    transfer(data_array);
-    byte b = receiveByte();
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(data_array);
+    byte b = commsController.receiveByte();
+    digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
     return b;
   }
@@ -197,8 +176,10 @@ class ADCBoard {
   void channelSetup(int adc_channel, uint8_t flags) {
 
     commsController.beginTransaction();
-    sendByte(WRITE | ADDR_CHANNELSETUP(adc_channel));
-    transfer(flags);
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(WRITE | ADDR_CHANNELSETUP(adc_channel));
+    commsController.transfer(flags);
+    digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
 
   }
@@ -209,10 +190,12 @@ class ADCBoard {
 
 
     commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
     // setup communication register for writing operation to the mode register
-    sendByte(WRITE | ADDR_MODE(adc_channel));
+    commsController.transfer(WRITE | ADDR_MODE(adc_channel));
     // setup mode register
-    sendByte(SINGLE_CONV_MODE);
+    commsController.transfer(SINGLE_CONV_MODE);
+    digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
 
     // data is ready when _rdy goes low
@@ -232,7 +215,9 @@ class ADCBoard {
 
     // send off command
     commsController.beginTransaction();
-    transfer(data_array, 4);
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(data_array, 4);
+    digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
 
     // data is ready when _rdy goes low
@@ -258,8 +243,8 @@ class ADCBoard {
 
     // write to the communication register
     commsController.beginTransaction();
-    sendByte(data_array);
     digitalWrite(cs_pin, LOW);
+    commsController.transfer(data_array);
     // read upper and lower bytes of channel data register (16 bit mode)
     upper = commsController.receiveByte();
     lower = commsController.receiveByte();

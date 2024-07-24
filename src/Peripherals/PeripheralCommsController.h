@@ -23,26 +23,8 @@ class PeripheralCommsController {
 
   void endTransaction() { SPI.endTransaction(); }
 
-  void sendByte(byte b) { SPI.transfer(b); }
-
-  void sendBytes(const byte* data, size_t len) {
-    for (size_t i = 0; i < len; ++i) {
-      SPI.transfer(data[i]);
-    }
-  }
-
-  template <typename... byte>
-  void sendBytes(byte... args) {
-    // (SPI.transfer(static_cast<byte>(args)), ...);
-    for (auto b : {args...}) {
-      SPI.transfer(b);
-    }
-  }
-
-
   byte receiveByte() {
-    byte b = SPI.transfer(0);
-    return b;
+    return SPI.transfer(0);
   }
 
 
@@ -50,17 +32,6 @@ class PeripheralCommsController {
 
   void transfer(uint8_t data) { SPI.transfer(data); }
 
-  void transferInTransaction(void* buf, size_t count) {
-    SPI.beginTransaction(spiSettings);
-    SPI.transfer(buf, count);
-    SPI.endTransaction();
-  }
-
-  void transferInTransaction(uint8_t data) {
-    SPI.beginTransaction(spiSettings);
-    SPI.transfer(data);
-    SPI.endTransaction();
-  }
 };
 
 bool PeripheralCommsController::spiInitialized = false;

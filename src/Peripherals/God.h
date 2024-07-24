@@ -52,7 +52,6 @@ class God {
     volatile float* data = new volatile float[saved_data_size];
 
 
-    DACChannel* dac = dacController.getChannel(dacChannel);
     // dac->setVoltage(v0);
     // dac->setVoltage(v0);
     // dacController.setVoltage(dacChannel, v0);
@@ -71,9 +70,7 @@ class God {
       }
       if (steps < numSteps && timeMicros % dac_interval_us == 0) {
         float desiredVoltage = v0 + (vf - v0) * steps / (numSteps - 1);
-        // dac->setVoltage(desiredVoltage);
-        dac->setVoltage(desiredVoltage);
-        // dacController.setVoltage(dacChannel, desiredVoltage);
+        dacController.setVoltage(dacChannel, desiredVoltage);
         steps++;
           start = true;
       }
