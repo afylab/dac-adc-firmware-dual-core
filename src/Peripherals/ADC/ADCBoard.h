@@ -1,3 +1,6 @@
+// Thank you to CU Denver for the convenient AD7734 macros used here
+// https://github.com/ucd-squidlab/AD7734Lib
+
 #pragma once
 
 #include <Arduino.h>
