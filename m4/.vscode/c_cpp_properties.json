@@ -8,8 +8,8 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "/Users/space/Desktop/NEW_Firmware/include",
-                "/Users/space/Desktop/NEW_Firmware/src",
+                "/Users/space/Desktop/NEW_Firmware/m4/include",
+                "/Users/space/Desktop/NEW_Firmware/m4/src",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/SPI",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/RPC/src",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/rpclib/src",
@@ -18,7 +18,6 @@
                 "/Users/space/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated-avr-comp",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/variants/GENERIC_STM32H747_M4",
-                "/Users/space/Desktop/NEW_Firmware/.pio/libdeps/giga_r1_m4/Portenta_H7_TimerInterrupt/src",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/Arduino_CAN/src",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/Arduino_H7_Video/src",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/Camera/src",
@@ -62,8 +61,8 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "/Users/space/Desktop/NEW_Firmware/include",
-                    "/Users/space/Desktop/NEW_Firmware/src",
+                    "/Users/space/Desktop/NEW_Firmware/m4/include",
+                    "/Users/space/Desktop/NEW_Firmware/m4/src",
                     "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/SPI",
                     "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/RPC/src",
                     "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/rpclib/src",
@@ -72,7 +71,6 @@
                     "/Users/space/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated",
                     "/Users/space/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated-avr-comp",
                     "/Users/space/.platformio/packages/framework-arduino-mbed/variants/GENERIC_STM32H747_M4",
-                    "/Users/space/Desktop/NEW_Firmware/.pio/libdeps/giga_r1_m4/Portenta_H7_TimerInterrupt/src",
                     "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/Arduino_CAN/src",
                     "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/Arduino_H7_Video/src",
                     "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/Camera/src",
