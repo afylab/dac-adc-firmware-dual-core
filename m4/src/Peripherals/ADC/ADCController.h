@@ -20,7 +20,6 @@ class ADCController : public Peripheral {
     // for (auto channel : adc_channels) {
     //   channel->initialize();
     // }
-    // Serial.println("ADC INITIALIZATION COMPLETE");
     return OperationResult::Success();
   }
 

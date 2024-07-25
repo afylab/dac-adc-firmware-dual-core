@@ -192,7 +192,6 @@ class ADCBoard {
     commsController.transfer(send);
     commsController.endTransaction();
     digitalWrite(cs_pin, HIGH);
-    Serial.println(send);
   }
 
   uint16_t getConversionData(int adc_channel) {
@@ -220,9 +219,6 @@ class ADCBoard {
   std::vector<double> continuousConvert(int channel_index, uint32_t frequency_us, uint32_t duration) {
     std::vector<double> data;
     uint32_t num_samples = duration / frequency_us;
-    Serial.println(duration);
-    Serial.println(frequency_us);
-    Serial.println(num_samples);
     startContinuousConversion(channel_index);
     for (uint32_t i = 0; i < num_samples; i++) {
       data.push_back(ADC2DOUBLE(getConversionData(channel_index)));

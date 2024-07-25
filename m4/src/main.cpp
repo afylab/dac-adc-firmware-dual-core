@@ -8,6 +8,7 @@
 #include "Peripherals/God.h"
 #include "Peripherals/PeripheralCommsController.h"
 #include "UserIOHandler.h"
+#include "RPC.h"
 
 FunctionRegistry registry;
 UserIOHandler userIOHandler(registry);
@@ -19,6 +20,8 @@ God god(registry, dacController, adcController);
 
 void setup() {
   userIOHandler.setup();
+  RPC.begin();
+  
   PeripheralCommsController::setup();
 
   for (int i : dac_cs_pins) {

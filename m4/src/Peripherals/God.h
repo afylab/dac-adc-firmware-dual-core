@@ -4,6 +4,8 @@
 #include <Peripherals/ADC/ADCController.h>
 #include <Peripherals/DAC/DACController.h>
 
+#include "RPC.h"
+
 
 class God {
  private:
@@ -42,11 +44,11 @@ class God {
 
     adcController.startContinuousConversion(adcChannel);
 
-    volatile int steps = 0;
-    volatile int x = 0;
+    int steps = 0;
+    int x = 0;
 
     int saved_data_size = 2 * numSteps * dac_interval_us / adc_interval_us;
-    volatile float* data = new volatile float[saved_data_size];
+    float* data = new float[saved_data_size];
 
 
     // dac->setVoltage(v0);
@@ -55,7 +57,9 @@ class God {
     ulong startTimeMicros = micros();
     bool start = false;
     ulong timeOffset = 0;
+    
     while (x < saved_data_size) {
+      
       ulong timeMicros = micros() - startTimeMicros;
       if (start && timeMicros % adc_interval_us == 0) {
         if (x==0) {
@@ -84,14 +88,22 @@ class God {
                                     ", steps: " + String(steps));
   }
 
-
-  OperationResult printData() {
-    Serial.println("Printing data:");
-    for (size_t i = 0; i < saved_data.size(); i++) {
-      Serial.println(saved_data[i], 6);
-    }
-    return OperationResult::Success("Done");
+  char* stringToCharBuffer(String str) {
+    char* buffer = new char[str.length() + 1];
+    str.toCharArray(buffer, str.length() + 1);
+    return buffer;
   }
+
+
+  OperationResult printData() 
+  {
+    String output = "";
+    for (size_t i = 0; i < saved_data.size(); i++) {
+      output+=String(saved_data[i], 6) + "\n";
+    }
+    return OperationResult::Success(output);
+  }
+
 
 
 };
