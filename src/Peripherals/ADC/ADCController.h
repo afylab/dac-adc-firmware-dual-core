@@ -36,6 +36,7 @@ class ADCController : public Peripheral {
     REGISTER_MEMBER_FUNCTION_3(registry, setConversionTime, "SET_CONVERSION_TIME");
     REGISTER_MEMBER_FUNCTION_3(registry, continuousConvert, "CONTINUOUS_CONVERT");
     REGISTER_MEMBER_FUNCTION_1(registry, idleMode, "IDLE_MODE");
+    REGISTER_MEMBER_FUNCTION_0(registry, getChannelsActive, "GET_CHANNELS_ACTIVE");
   }
 
   void addBoard(int data_sync_pin, int data_ready, int reset_pin) {
@@ -114,5 +115,31 @@ class ADCController : public Peripheral {
     adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         ->idleMode(getChannelIndexFromGlobalIndex(adc_channel));
     return OperationResult::Success("Returned ADC " + String(adc_channel) + " to idle mode");
+  }
+
+  OperationResult getChannelsActive() {
+    std::vector<bool> statuses;
+    for (auto board : adc_boards) {
+      for (int i = 0; i < NUM_CHANNELS_PER_ADC_BOARD; i++) {
+        statuses.push_back(board->isChannelActive(i));
+      }
+    }
+    return OperationResult::Success(parseVector(statuses));
+  }
+
+  String parseVector(std::vector<double> data) {
+    String result = "";
+    for (auto d : data) {
+      result += String(d, 6) + ",";
+    }
+    return result.substring(0, result.length() - 1);
+  }
+
+  String parseVector(std::vector<bool> data) {
+    String result = "";
+    for (auto d : data) {
+      result += String(d) + ",";
+    }
+    return result.substring(0, result.length() - 1);
   }
 };

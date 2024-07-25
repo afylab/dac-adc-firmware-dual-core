@@ -228,7 +228,7 @@ class ADCBoard {
       data.push_back(ADC2DOUBLE(getConversionData(channel_index)));
       delayMicroseconds(frequency_us);
     }
-    idleMode(channel_index);
+    // idleMode(channel_index);
     return data;
   }
 
@@ -239,5 +239,10 @@ class ADCBoard {
     commsController.transfer(IDLE_MODE);
     digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
+  }
+
+  bool isChannelActive(int adc_channel) {
+    uint8_t status = getADCStatus();
+    return (status & (1 << adc_channel)) != 0;
   }
 };
