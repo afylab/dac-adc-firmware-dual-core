@@ -106,55 +106,12 @@ class ADCBoard {
 
   void initialize() {}
 
-  float readVoltage(int channel_index) {
-    int statusbyte = 0;
-    byte o2;
-    byte o3;
-    int ovr;
-    commsController.beginTransaction();
-    digitalWrite(cs_pin, LOW);
-    commsController.transfer(0x38 + channel_index);  // Indicates comm register to access
-                                     // mode register with channel
 
-    commsController.transfer(0x48);  // Indicates mode register to start
-                     // single convertion in dump mode
-
-    waitDataReady();  // Waits until convertion finishes
-
-    commsController.transfer(0x48 + channel_index);  // Indcates comm register to read
-                                     // data channel data register
-
-    statusbyte = commsController.receiveByte();  // Reads Channel 'ch' status
-
-    o2 = commsController.receiveByte();  // Reads first byte
-
-    o3 = commsController.receiveByte();  // Reads second byte
-    digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
-
-    ovr = statusbyte & 1;
-    switch (ovr) {
-      case 0:
-        int decimal;
-        decimal = twoByteToInt(o2, o3);
-        float voltage;
-        voltage = map2(decimal, 0, 65536, -10.0, 10.0);
-        return voltage;
-        break;
-
-      case 1:
-        return 0.0;
-        break;
-    }
-
-    return 0.0;
-  }
-
-  float readVoltageNew(int channel_index) {
+  double readVoltage(int channel_index) {
     startSingleConversion(channel_index);
     waitDataReady();
     uint16_t data = getConversionData(channel_index);
-    return convertToVoltage(data);
+    return ADC2DOUBLE(data);
   }
 
 
@@ -256,7 +213,28 @@ class ADCBoard {
     return result;
   }
 
-  float convertToVoltage(uint16_t data) {
-    return ADC2DOUBLE(data);
+
+  std::vector<double> continuousConvert(int channel_index, uint32_t frequency_us, uint32_t duration) {
+    std::vector<double> data;
+    uint32_t num_samples = duration / frequency_us;
+    Serial.println(duration);
+    Serial.println(frequency_us);
+    Serial.println(num_samples);
+    startContinuousConversion(channel_index);
+    for (uint32_t i = 0; i < num_samples; i++) {
+      data.push_back(ADC2DOUBLE(getConversionData(channel_index)));
+      delayMicroseconds(frequency_us);
+    }
+    idleMode(channel_index);
+    return data;
+  }
+
+  void idleMode(int adc_channel) {
+    commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(WRITE | ADDR_MODE(adc_channel));
+    commsController.transfer(IDLE_MODE);
+    digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
   }
 };

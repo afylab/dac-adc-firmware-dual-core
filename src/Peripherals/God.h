@@ -26,19 +26,16 @@ class God {
   }
 
   void initializeRegistry() {
-    REGISTER_MEMBER_FUNCTION_7(registry, thing, "THING");
+    REGISTER_MEMBER_FUNCTION_7(registry, bufferRampSteps, "BUFFER_RAMP_STEPS");
     REGISTER_MEMBER_FUNCTION_0(registry, printData, "PRINT_DATA");
   }
 
   std::vector<float> saved_data;
 
-  OperationResult thing(int adcChannel, int dacChannel, float v0, float vf,
-                        int numSteps, uint32_t dac_interval_us,
-                        uint32_t adc_interval_us) {
+  OperationResult bufferRampSteps(int adcChannel, int dacChannel, float v0, float vf,
+                        int numSteps, uint32_t adc_interval_us,
+                        uint32_t dac_interval_us) {
     saved_data.clear();
-    // Convert to microseconds and ensure it's within the valid range
-    // uint32_t adc_interval_us = static_cast<uint32_t>(adc_interval_ms * 1000);
-    // uint32_t dac_interval_us = static_cast<uint32_t>(dac_interval_ms * 1000);
     if (adc_interval_us < 1 || dac_interval_us < 1) {
       return OperationResult::Failure("Invalid interval");
     }
@@ -76,6 +73,8 @@ class God {
       }
       
     }
+
+    adcController.idleMode(adcChannel);
 
     for (int i = 0; i < saved_data_size; i++) {
       saved_data.push_back(static_cast<float>(data[i]));

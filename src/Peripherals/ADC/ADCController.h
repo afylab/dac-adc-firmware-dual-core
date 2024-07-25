@@ -33,8 +33,9 @@ class ADCController : public Peripheral {
 
   void initializeRegistry() override {
     REGISTER_MEMBER_FUNCTION_1(registry, readChannelVoltage, "GET_ADC");
-    REGISTER_MEMBER_FUNCTION_1(registry, readChannelVoltageNew, "GET_ADC_NEW");
     REGISTER_MEMBER_FUNCTION_3(registry, setConversionTime, "SET_CONVERSION_TIME");
+    REGISTER_MEMBER_FUNCTION_3(registry, continuousConvert, "CONTINUOUS_CONVERT");
+    REGISTER_MEMBER_FUNCTION_1(registry, idleMode, "IDLE_MODE");
   }
 
   void addBoard(int data_sync_pin, int data_ready, int reset_pin) {
@@ -67,16 +68,6 @@ class ADCController : public Peripheral {
     }
   }
 
-  OperationResult readChannelVoltageNew(int channel_index) {
-    if (isChannelIndexValid(channel_index)) {
-      return OperationResult::Success(String(
-          adc_boards[getBoardIndexFromGlobalIndex(channel_index)]->readVoltageNew(
-              getChannelIndexFromGlobalIndex(channel_index)), 6));
-    } else {
-      return OperationResult::Failure("Invalid channel index");
-    }
-  }
-
   uint16_t getConversionData(int adc_channel) {
     return adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         ->getConversionData(getChannelIndexFromGlobalIndex(adc_channel));
@@ -96,5 +87,32 @@ class ADCController : public Peripheral {
   void startContinuousConversion(int adc_channel) {
     adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         ->startContinuousConversion(getChannelIndexFromGlobalIndex(adc_channel));
+  }
+
+  OperationResult continuousConvert(int channel_index, uint32_t frequency_us,
+                                     uint32_t duration) {
+    if (!isChannelIndexValid(channel_index)) {
+      return OperationResult::Failure("Invalid channel index");
+    }
+    if (frequency_us < 1) {
+      return OperationResult::Failure("Invalid frequency");
+    }
+
+    std::vector<double> data = adc_boards[getBoardIndexFromGlobalIndex(channel_index)]
+        ->continuousConvert(getChannelIndexFromGlobalIndex(channel_index),
+                             frequency_us, duration);
+    String result = "";
+    for (auto d : data) {
+      result += String(d, 6) + ",";
+    }
+    result = result.substring(0, result.length() - 1);
+
+    return OperationResult::Success(result);
+  }
+
+  OperationResult idleMode(int adc_channel) {
+    adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
+        ->idleMode(getChannelIndexFromGlobalIndex(adc_channel));
+    return OperationResult::Success("Returned ADC " + String(adc_channel) + " to idle mode");
   }
 };
