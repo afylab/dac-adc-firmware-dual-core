@@ -13,10 +13,10 @@ class DACChannel {
   float voltage_upper_bound;
   float voltage_lower_bound;
   float full_scale = 10.0;
-  PeripheralCommsController &commsController;
+  PeripheralCommsController *&commsController;
 
  public:
-  DACChannel(PeripheralCommsController &commsController, int cs_pin, int ldac)
+  DACChannel(PeripheralCommsController *&commsController, int cs_pin, int ldac)
       : commsController(commsController) {
     this->cs_pin = cs_pin;
     this->ldac = ldac;
@@ -32,11 +32,11 @@ class DACChannel {
     byte bytesToSend[3] = {
         32, 0,
         2};  // Write to control register; Reserved byte; Unclamp DAC from GND
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(bytesToSend, 3);
+    commsController->transfer(bytesToSend, 3);
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
     setVoltage(0.0);
   }
 
@@ -57,13 +57,13 @@ class DACChannel {
 
     byte bytesToSend[3] = {b1, b2, b3};
 
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(bytesToSend,
+    commsController->transfer(bytesToSend,
                              3);  // send command byte to DAC; MS data bits,
                                   // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
 
     digitalWrite(ldac, LOW);
     digitalWrite(ldac, HIGH);
@@ -82,13 +82,13 @@ class DACChannel {
 
     byte bytesToSend[3] = {b1, b2, b3};
 
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(bytesToSend,
+    commsController->transfer(bytesToSend,
                              3);  // send command byte to DAC; MS data bits,
                                   // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
 
     return threeByteToVoltage(b1, b2, b3);
   }
@@ -122,13 +122,13 @@ class DACChannel {
 
     byte bytesToSend[3] = {b1, b2, b3};
 
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(bytesToSend,
+    commsController->transfer(bytesToSend,
                              3);  // send command byte to DAC; MS data bits,
                                   // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
 
     digitalWrite(ldac, LOW);
 

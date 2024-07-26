@@ -6,59 +6,62 @@
 
 #include "Config.h"
 #include "Peripherals/ADC/ADCBoard.h"
-#include "Peripherals/Peripheral.h"
 
-class ADCController : public Peripheral {
+class ADCController {
  private:
-  std::vector<ADCBoard*> adc_boards;
+  inline static std::vector<ADCBoard*> adc_boards;
+
+  static ADCController* instance;
+  static PeripheralCommsController* commsController;
 
  public:
-  ADCController(FunctionRegistry& r, PeripheralCommsController& c)
-      : Peripheral(r, c) {}
+  ADCController(FunctionRegistry& r, PeripheralCommsController& c) {
+        instance = this;
+      }
 
-  OperationResult initialize() override {
+  static OperationResult initialize() {
     // for (auto channel : adc_channels) {
     //   channel->initialize();
     // }
     return OperationResult::Success();
   }
 
-  void setup() override {
+  static void setup() {
     initializeRegistry();
     for (auto board : adc_boards) {
       board->setup();
     }
   }
 
-  void initializeRegistry() override {
-    REGISTER_MEMBER_FUNCTION_1(registry, readChannelVoltage, "GET_ADC");
-    REGISTER_MEMBER_FUNCTION_3(registry, setConversionTime, "SET_CONVERSION_TIME");
-    REGISTER_MEMBER_FUNCTION_3(registry, continuousConvert, "CONTINUOUS_CONVERT");
-    REGISTER_MEMBER_FUNCTION_1(registry, idleMode, "IDLE_MODE");
-    REGISTER_MEMBER_FUNCTION_0(registry, getChannelsActive, "GET_CHANNELS_ACTIVE");
+  static void initializeRegistry() {
+    REGISTER_MEMBER_FUNCTION_1(readChannelVoltage, "GET_ADC");
+    REGISTER_MEMBER_FUNCTION_3(setConversionTime, "SET_CONVERSION_TIME");
+    REGISTER_MEMBER_FUNCTION_3(continuousConvert, "CONTINUOUS_CONVERT");
+    REGISTER_MEMBER_FUNCTION_1(idleMode, "IDLE_MODE");
+    REGISTER_MEMBER_FUNCTION_0(getChannelsActive, "GET_CHANNELS_ACTIVE");
   }
 
-  void addBoard(int data_sync_pin, int data_ready, int reset_pin) {
+  static void addBoard(int data_sync_pin, int data_ready, int reset_pin) {
     ADCBoard* newBoard =
         new ADCBoard(commsController, data_sync_pin, data_ready, reset_pin);
     adc_boards.push_back(newBoard);
   }
 
-  bool isChannelIndexValid(int channelIndex) {
+  static bool isChannelIndexValid(int channelIndex) {
     return channelIndex >= 0 &&
            static_cast<size_t>(channelIndex) <
                adc_boards.size() * NUM_CHANNELS_PER_ADC_BOARD;
   }
 
-  int getBoardIndexFromGlobalIndex(int channel_index) {
+  static int getBoardIndexFromGlobalIndex(int channel_index) {
     return channel_index / NUM_CHANNELS_PER_ADC_BOARD;
   }
 
-  int getChannelIndexFromGlobalIndex(int channel_index) {
+  static int getChannelIndexFromGlobalIndex(int channel_index) {
     return channel_index % NUM_CHANNELS_PER_ADC_BOARD;
   }
 
-  OperationResult readChannelVoltage(int channel_index) {
+  static OperationResult readChannelVoltage(int channel_index) {
     if (isChannelIndexValid(channel_index)) {
       return OperationResult::Success(String(
           adc_boards[getBoardIndexFromGlobalIndex(channel_index)]->readVoltage(
@@ -68,28 +71,28 @@ class ADCController : public Peripheral {
     }
   }
 
-  uint16_t getConversionData(int adc_channel) {
+  static uint16_t getConversionData(int adc_channel) {
     return adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         ->getConversionData(getChannelIndexFromGlobalIndex(adc_channel));
   }
 
-  OperationResult setConversionTime(int adc_channel, bool chop, int fw) {
+  static OperationResult setConversionTime(int adc_channel, bool chop, int fw) {
     adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         ->setConversionTime(getChannelIndexFromGlobalIndex(adc_channel), chop,
                             fw);
     return OperationResult::Success("Done");
   }
 
-  float getVoltageData(int adc_channel) {
+  static float getVoltageData(int adc_channel) {
     return ADC2DOUBLE(getConversionData(adc_channel));
   }
 
-  void startContinuousConversion(int adc_channel) {
+  static void startContinuousConversion(int adc_channel) {
     adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         ->startContinuousConversion(getChannelIndexFromGlobalIndex(adc_channel));
   }
 
-  OperationResult continuousConvert(int channel_index, uint32_t frequency_us,
+  static OperationResult continuousConvert(int channel_index, uint32_t frequency_us,
                                      uint32_t duration) {
     if (!isChannelIndexValid(channel_index)) {
       return OperationResult::Failure("Invalid channel index");
@@ -110,13 +113,13 @@ class ADCController : public Peripheral {
     return OperationResult::Success(result);
   }
 
-  OperationResult idleMode(int adc_channel) {
+  static OperationResult idleMode(int adc_channel) {
     adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         ->idleMode(getChannelIndexFromGlobalIndex(adc_channel));
     return OperationResult::Success("Returned ADC " + String(adc_channel) + " to idle mode");
   }
 
-  OperationResult getChannelsActive() {
+  static OperationResult getChannelsActive() {
     std::vector<bool> statuses;
     for (auto board : adc_boards) {
       for (int i = 0; i < NUM_CHANNELS_PER_ADC_BOARD; i++) {
@@ -126,7 +129,7 @@ class ADCController : public Peripheral {
     return OperationResult::Success(parseVector(statuses));
   }
 
-  String parseVector(std::vector<double> data) {
+  static String parseVector(std::vector<double> data) {
     String result = "";
     for (auto d : data) {
       result += String(d, 6) + ",";
@@ -134,7 +137,7 @@ class ADCController : public Peripheral {
     return result.substring(0, result.length() - 1);
   }
 
-  String parseVector(std::vector<bool> data) {
+  static String parseVector(std::vector<bool> data) {
     String result = "";
     for (auto d : data) {
       result += String(d) + ",";
@@ -142,3 +145,6 @@ class ADCController : public Peripheral {
     return result.substring(0, result.length() - 1);
   }
 };
+
+ADCController* ADCController::instance = nullptr;
+PeripheralCommsController* ADCController::commsController = nullptr;

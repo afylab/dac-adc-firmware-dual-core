@@ -24,12 +24,12 @@ class FunctionRegistry {
                   int ac)
         : name(n), func(f), argCount(ac) {}
   };
-  std::vector<FunctionEntry> functions;
+  inline static std::vector<FunctionEntry> functions;
 
 
  public:
   template <typename Func>
-  void registerFunction(const String& name, Func&& func, int argCount) {
+  static void registerFunction(const String& name, Func&& func, int argCount) {
     String upper_name = name;
     upper_name.toUpperCase();
 
@@ -37,8 +37,8 @@ class FunctionRegistry {
     functions.emplace_back(upper_name, func, argCount);
   }
 
-  ExecuteResult execute(const String& name, const std::vector<float>& args,
-                        OperationResult& result) const {
+  static ExecuteResult execute(const String& name, const std::vector<float>& args,
+                        OperationResult& result) {
     String upper_name = name;
     upper_name.toUpperCase();
     for (const auto& entry : functions) {

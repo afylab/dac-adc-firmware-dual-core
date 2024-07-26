@@ -7,34 +7,41 @@
 #include "Peripherals/DAC/DACController.h"
 #include "Peripherals/God.h"
 #include "Peripherals/PeripheralCommsController.h"
-#include "UserIOHandler.h"
 #include "RPC.h"
-
-FunctionRegistry registry;
-UserIOHandler userIOHandler(registry);
-PeripheralCommsController dacCommsController(DAC_SPI_SETTINGS);
-PeripheralCommsController adcCommsController(ADC_SPI_SETTINGS);
-DACController dacController(registry, dacCommsController);
-ADCController adcController(registry, adcCommsController);
-God god(registry, dacController, adcController);
+#include "UserIOHandler.h"
 
 void setup() {
-  userIOHandler.setup();
+  UserIOHandler::setup();
   RPC.begin();
-  
+
   PeripheralCommsController::setup();
 
   for (int i : dac_cs_pins) {
-    dacController.addChannel(i, ldac);
+    DACController::addChannel(i, ldac);
   }
 
-  adcController.addBoard(adc_cs_pins[0], drdy[0], reset[0]);
-  adcController.addBoard(adc_cs_pins[1], drdy[1], reset[1]);
+  ADCController::addBoard(adc_cs_pins[0], drdy[0], reset[0]);
+  ADCController::addBoard(adc_cs_pins[1], drdy[1], reset[1]);
 
-  dacController.setup();
-  adcController.setup();
+  DACController::setup();
+  ADCController::setup();
 
-  god.setup();
+  God::setup();
 }
 
-void loop() { userIOHandler.handleUserIO(); }
+// static char* stringToCharBuffer(String str) {
+//   char* buffer = new char[str.length() + 1];
+//   str.toCharArray(buffer, str.length() + 1);
+//   return buffer;
+// }
+// static std::vector<unsigned long> times;
+void loop() {
+  UserIOHandler::handleUserIO();
+  // while (times.size() < 10) {
+  //   times.push_back(micros());
+  // }
+  // for (size_t i = 1; i < times.size(); ++i) {
+  //   RPC.write(stringToCharBuffer(String(times[i] - times[i - 1]) + "\n"));
+  //   delay(100);
+  // }
+}

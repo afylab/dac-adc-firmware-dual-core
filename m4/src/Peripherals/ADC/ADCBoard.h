@@ -59,7 +59,7 @@ class ADCBoard {
   int cs_pin;
   int data_ready_pin;
   int reset_pin;
-  PeripheralCommsController &commsController;
+  PeripheralCommsController *&commsController;
 
   float map2(float x, long in_min, long in_max, float out_min,
              float out_max)  // float
@@ -87,7 +87,7 @@ class ADCBoard {
   }
 
  public:
-  ADCBoard(PeripheralCommsController &commsController, int cs_pin,
+  ADCBoard(PeripheralCommsController *&commsController, int cs_pin,
            int data_ready_pin, int reset_pin)
       : cs_pin(cs_pin),
         data_ready_pin(data_ready_pin),
@@ -124,23 +124,23 @@ class ADCBoard {
 
     data_array = READ | ADDR_ADCSTATUS;
 
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(data_array);
-    byte b = commsController.receiveByte();
+    commsController->transfer(data_array);
+    byte b = commsController->receiveByte();
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
     return b;
   }
 
   void channelSetup(int adc_channel, uint8_t flags) {
 
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(WRITE | ADDR_CHANNELSETUP(adc_channel));
-    commsController.transfer(flags);
+    commsController->transfer(WRITE | ADDR_CHANNELSETUP(adc_channel));
+    commsController->transfer(flags);
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
 
   }
 
@@ -149,14 +149,14 @@ class ADCBoard {
 
 
 
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
     // setup communication register for writing operation to the mode register
-    commsController.transfer(WRITE | ADDR_MODE(adc_channel));
+    commsController->transfer(WRITE | ADDR_MODE(adc_channel));
     // setup mode register
-    commsController.transfer(SINGLE_CONV_MODE);
+    commsController->transfer(SINGLE_CONV_MODE);
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
 
     // data is ready when _rdy goes low
   }
@@ -174,11 +174,11 @@ class ADCBoard {
     data_array[3] = CONT_CONV_MODE;
 
     // send off command
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(data_array, 4);
+    commsController->transfer(data_array, 4);
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
 
     // data is ready when _rdy goes low
   }
@@ -187,10 +187,10 @@ class ADCBoard {
     byte chop_byte = chop == 1 ? 0x80 : 0x00;
     byte send = chop_byte | static_cast<byte>(fw);
     digitalWrite(cs_pin, LOW);
-    commsController.beginTransaction();
-    commsController.transfer(WRITE | ADDR_CHANNELCONVERSIONTIME(adc_channel));
-    commsController.transfer(send);
-    commsController.endTransaction();
+    commsController->beginTransaction();
+    commsController->transfer(WRITE | ADDR_CHANNELCONVERSIONTIME(adc_channel));
+    commsController->transfer(send);
+    commsController->endTransaction();
     digitalWrite(cs_pin, HIGH);
   }
 
@@ -201,14 +201,14 @@ class ADCBoard {
     data_array = READ | ADDR_CHANNELDATA(adc_channel);
 
     // write to the communication register
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(data_array);
+    commsController->transfer(data_array);
     // read upper and lower bytes of channel data register (16 bit mode)
-    upper = commsController.receiveByte();
-    lower = commsController.receiveByte();
+    upper = commsController->receiveByte();
+    lower = commsController->receiveByte();
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
 
     uint16_t result = upper << 8 | lower;
 
@@ -229,12 +229,12 @@ class ADCBoard {
   }
 
   void idleMode(int adc_channel) {
-    commsController.beginTransaction();
+    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(WRITE | ADDR_MODE(adc_channel));
-    commsController.transfer(IDLE_MODE);
+    commsController->transfer(WRITE | ADDR_MODE(adc_channel));
+    commsController->transfer(IDLE_MODE);
     digitalWrite(cs_pin, HIGH);
-    commsController.endTransaction();
+    commsController->endTransaction();
   }
 
   bool isChannelActive(int adc_channel) {

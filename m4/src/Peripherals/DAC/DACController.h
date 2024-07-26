@@ -10,63 +10,55 @@
 #include "FunctionRegistry.h"
 #include "FunctionRegistryMacros.h"
 #include "Peripherals/OperationResult.h"
-#include "Peripherals/Peripheral.h"
 
-class DACController : public Peripheral {
+class DACController {
  private:
-  std::vector<DACChannel*> dac_channels;
+  inline static std::vector<DACChannel*> dac_channels;
+
+  static PeripheralCommsController* commsController;
+
 
  public:
-  float DAC_FULL_SCALE = DEFAULT_DAC_FULL_SCALE;
 
-  DACController(FunctionRegistry& r, PeripheralCommsController& c)
-      : Peripheral(r, c) {}
-
-  ~DACController() {
-    for (auto dac : dac_channels) {
-      delete dac;
-    }
+  static void initializeRegistry() {
+    REGISTER_MEMBER_FUNCTION_0(initialize, "INITIALIZE");
+    REGISTER_MEMBER_FUNCTION_0(initialize, "INIT");
+    REGISTER_MEMBER_FUNCTION_2(setVoltage, "SET");
+    REGISTER_MEMBER_FUNCTION_1(getVoltage, "GET_DAC");
   }
 
-  void initializeRegistry() override {
-    REGISTER_MEMBER_FUNCTION_0(registry, initialize, "INITIALIZE");
-    REGISTER_MEMBER_FUNCTION_0(registry, initialize, "INIT");
-    REGISTER_MEMBER_FUNCTION_2(registry, setVoltage, "SET");
-    REGISTER_MEMBER_FUNCTION_1(registry, getVoltage, "GET_DAC");
-  }
-
-  void addChannel(int cs_pin, int ldac_pin) {
+  static void addChannel(int cs_pin, int ldac_pin) {
     DACChannel* newChannel = new DACChannel(commsController, cs_pin, ldac_pin);
     dac_channels.push_back(newChannel);
   }
 
-  OperationResult initialize() override {
+  static OperationResult initialize() {
     for (auto channel : dac_channels) {
       channel->initialize();
     }
     return OperationResult::Success("INITIALIZATION COMPLETE");
   }
 
-  void setup() override {
+  static void setup() {
     initializeRegistry();
     for (auto channel : dac_channels) {
       channel->setup();
     }
   }
 
-  DACChannel* getChannel(int channel_index) {
+  static DACChannel* getChannel(int channel_index) {
     if (!isChannelIndexValid(channel_index)) {
       return nullptr;
     }
     return dac_channels[channel_index];
   }
 
-  bool isChannelIndexValid(int channelIndex) {
+  static bool isChannelIndexValid(int channelIndex) {
     return channelIndex >= 0 &&
            static_cast<size_t>(channelIndex) < dac_channels.size();
   }
 
-  OperationResult setVoltage(int channel_index, float voltage) {
+  static OperationResult setVoltage(int channel_index, float voltage) {
     DACChannel* dac_channel = dac_channels[channel_index];
     if (!isChannelIndexValid(channel_index)) {
       return OperationResult::Failure("Invalid channel index " +
@@ -82,14 +74,14 @@ class DACController : public Peripheral {
                                     " UPDATED TO " + String(v, 6) + " V");
   }
 
-  float setVoltageBuffer(int channel_index, float voltage) {
+  static float setVoltageBuffer(int channel_index, float voltage) {
     if (!isChannelIndexValid(channel_index)) {
       return -1;
     }
     return dac_channels[channel_index]->setVoltageBuffer(voltage);
   }
 
-  OperationResult getVoltage(int channel_index) {
+  static OperationResult getVoltage(int channel_index) {
     if (!isChannelIndexValid(channel_index)) {
       return OperationResult::Failure("Invalid channel index " +
                                       String(channel_index));
@@ -98,7 +90,7 @@ class DACController : public Peripheral {
         String(dac_channels[channel_index]->getVoltage(), 6));
   }
 
-  void setCalibration(int channel_index, float offset, float gain) {
+  static void setCalibration(int channel_index, float offset, float gain) {
     if (!isChannelIndexValid(channel_index)) {
       return;
     }
@@ -106,24 +98,26 @@ class DACController : public Peripheral {
     dac_channels[channel_index]->setCalibration(offset, gain);
   }
 
-  float getLowerBound(int channel) {
+  static float getLowerBound(int channel) {
     if (!isChannelIndexValid(channel)) {
       return -1;
     }
     return dac_channels[channel]->getLowerBound();
   }
 
-  float getUpperBound(int channel) {
+  static float getUpperBound(int channel) {
     if (!isChannelIndexValid(channel)) {
       return -1;
     }
     return dac_channels[channel]->getUpperBound();
   }
 
-  void sendCode(int channel, int code) {
+  static void sendCode(int channel, int code) {
     if (!isChannelIndexValid(channel)) {
       return;
     }
     dac_channels[channel]->sendCode(code);
   }
 };
+
+PeripheralCommsController* DACController::commsController = new PeripheralCommsController(DAC_SPI_SETTINGS);

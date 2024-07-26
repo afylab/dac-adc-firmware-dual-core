@@ -10,17 +10,14 @@
 #include "RPC.h"
 
 struct UserIOHandler {
-  FunctionRegistry& registry;
 
-  UserIOHandler(FunctionRegistry& r) : registry(r) {}
-
-  void setup() {
-    REGISTER_MEMBER_FUNCTION_0(registry, nop, "NOP");
+  static void setup() {
+    REGISTER_MEMBER_FUNCTION_0(nop, "NOP");
   }
 
-  OperationResult nop() { return OperationResult::Success("NOP");}
+  static OperationResult nop() { return OperationResult::Success("NOP");}
 
-  std::vector<String> query_rpc() {
+  static std::vector<String> query_rpc() {
     char received = '\0';
     String inByte = "";
     std::vector<String> comm;
@@ -40,13 +37,13 @@ struct UserIOHandler {
     return comm;
   }
 
-  bool isValidFloat(const String& str) {
+  static bool isValidFloat(const String& str) {
     char* endPtr;
     strtod(str.c_str(), &endPtr);
     return endPtr != str.c_str() && *endPtr == '\0' && str.length() > 0;
   }
 
-  void handleUserIO() {
+  static void handleUserIO() {
     std::vector<String> comm;
     if (RPC.available()) {
       comm = query_rpc();
@@ -64,7 +61,7 @@ struct UserIOHandler {
         }
         OperationResult result = OperationResult::Failure("Something went wrong!");
         FunctionRegistry::ExecuteResult executeResult =
-            registry.execute(command, args, result);
+            FunctionRegistry::execute(command, args, result);
 
         switch (executeResult) {
           case FunctionRegistry::ExecuteResult::Success:
