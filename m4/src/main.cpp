@@ -8,11 +8,11 @@
 #include "Peripherals/God.h"
 #include "Peripherals/PeripheralCommsController.h"
 #include "RPC.h"
+#include <vector>
 #include "UserIOHandler.h"
-
 void setup() {
-  UserIOHandler::setup();
   RPC.begin();
+  UserIOHandler::setup();
 
   PeripheralCommsController::setup();
 
@@ -21,12 +21,14 @@ void setup() {
   }
 
   ADCController::addBoard(adc_cs_pins[0], drdy[0], reset[0]);
+  
   ADCController::addBoard(adc_cs_pins[1], drdy[1], reset[1]);
 
   DACController::setup();
   ADCController::setup();
 
   God::setup();
+  // pinMode(24, OUTPUT);
 }
 
 // static char* stringToCharBuffer(String str) {
@@ -34,14 +36,21 @@ void setup() {
 //   str.toCharArray(buffer, str.length() + 1);
 //   return buffer;
 // }
-// static std::vector<unsigned long> times;
+
+// unsigned long times[10];
+int i = 0;
 void loop() {
   UserIOHandler::handleUserIO();
-  // while (times.size() < 10) {
-  //   times.push_back(micros());
+
+  // for (int i = 0; i < 10; i++) {
+  //   times[i] = micros();
   // }
-  // for (size_t i = 1; i < times.size(); ++i) {
-  //   RPC.write(stringToCharBuffer(String(times[i] - times[i - 1]) + "\n"));
-  //   delay(100);
+
+  // for (int i = 0; i < 9; i++) {
+  //   Serial.println(times[i + 1] - times[i]);
+  // }
+  // if (i % 10 == 0) {
+  //   digitalWrite(24, HIGH);
+  //   digitalWrite(24, LOW);
   // }
 }

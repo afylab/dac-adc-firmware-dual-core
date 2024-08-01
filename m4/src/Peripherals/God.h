@@ -4,19 +4,20 @@
 #include <Peripherals/ADC/ADCController.h>
 #include <Peripherals/DAC/DACController.h>
 
-// #include "Portenta_H7_TimerInterrupt.h"
-
-#include "RPC.h"
+#include "Portenta_H7_TimerInterrupt.h"
+// #include "RPC.h"
 
 class God {
  private:
-  // static Portenta_H7_Timer* adcTimer;
-
+  static Portenta_H7_Timer adcTimer;
+  static Portenta_H7_Timer dacTimer;
 
   static God* instance;
 
- public:
+  inline static volatile bool adcFlag = false;
+  inline static volatile bool dacFlag = false;
 
+ public:
   static void setup() { initializeRegistry(); }
 
   static void initializeRegistry() {
@@ -26,10 +27,10 @@ class God {
 
   inline static std::vector<float> saved_data;
 
-  static OperationResult bufferRampSteps(int adcChannel, int dacChannel, float v0,
-                                  float vf, int numSteps,
-                                  uint32_t adc_interval_us,
-                                  uint32_t dac_interval_us) {
+  static OperationResult bufferRampSteps(int adcChannel, int dacChannel,
+                                         float v0, float vf, int numSteps,
+                                         uint32_t adc_interval_us,
+                                         uint32_t dac_interval_us) {
     saved_data.clear();
     if (adc_interval_us < 1 || dac_interval_us < 1) {
       return OperationResult::Failure("Invalid interval");
@@ -40,38 +41,37 @@ class God {
     int steps = 0;
     int x = 0;
 
-    int saved_data_size = 2 * numSteps * dac_interval_us / adc_interval_us;
+    const int saved_data_size = numSteps * dac_interval_us / adc_interval_us;
     float* data = new float[saved_data_size];
-
-    // if (adcTimer.attachInterruptInterval(adc_interval_us, adc_handler)) {
-    //   Serial.print(F("Starting  Timer0 OK, millis() = "));
-    //   Serial.println(millis());
-    // } else
-    //   Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
-    // dac->setVoltage(v0);
-    // dac->setVoltage(v0);
-    DACController::setVoltage(dacChannel, v0);
-    ulong startTimeMicros = micros();
     bool start = false;
-    ulong timeOffset = 0;
+
+    float* voltSetpoints = new float[numSteps];
+
+    for (int i = 0; i < numSteps; i++) {
+      voltSetpoints[i] = v0 + (vf - v0) * i / (numSteps - 1);
+    }
+    
+    // ulong startTimeMicros = micros();
+    // ulong timeOffset = 0;
+
+    dacTimer.attachInterruptInterval(dac_interval_us, dac_handler);
+    adcTimer.attachInterruptInterval(adc_interval_us, adc_handler);
 
     while (x < saved_data_size) {
-      ulong timeMicros = micros() - startTimeMicros;
-      if (start && timeMicros % adc_interval_us == 0) {
-        if (x == 0) {
-          timeOffset = timeMicros;
-        }
-        data[x] = timeMicros - timeOffset;
-        data[x + 1] = ADCController::getVoltageData(adcChannel);
-        x += 2;
+      if (adcFlag) {
+        data[x] = ADCController::getVoltageData(adcChannel);
+        x++;
+        adcFlag = false;
       }
-      if (steps < numSteps && timeMicros % dac_interval_us == 0) {
-        float desiredVoltage = v0 + (vf - v0) * steps / (numSteps - 1);
-        DACController::setVoltage(dacChannel, desiredVoltage);
+      if (dacFlag) {
+        DACController::setVoltage(dacChannel, voltSetpoints[steps]);
         steps++;
-        start = true;
+        dacFlag = false;
       }
     }
+
+    adcTimer.detachInterrupt();
+    dacTimer.detachInterrupt();
 
     ADCController::idleMode(adcChannel);
 
@@ -89,7 +89,13 @@ class God {
     return buffer;
   }
 
-  // static void adc_handler() { ADCController::getVoltageData(adcChannel); }
+  static void adc_handler() {
+    adcFlag = true;
+  }
+
+  static void dac_handler() {
+    dacFlag = true;
+  }
 
   static OperationResult printData() {
     String output = "";
@@ -101,4 +107,5 @@ class God {
 };
 
 God* God::instance = nullptr;
-// Portenta_H7_Timer* God::adcTimer = new Portenta_H7_Timer(TIM1);
+Portenta_H7_Timer God::adcTimer = Portenta_H7_Timer(TIM14);
+Portenta_H7_Timer God::dacTimer = Portenta_H7_Timer(TIM15);

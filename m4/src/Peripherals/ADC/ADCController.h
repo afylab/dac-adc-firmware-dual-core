@@ -6,7 +6,9 @@
 
 #include "Config.h"
 #include "Peripherals/ADC/ADCBoard.h"
-
+#include "Peripherals/OperationResult.h"
+#include "FunctionRegistry.h"
+#include "FunctionRegistryMacros.h"
 class ADCController {
  private:
   inline static std::vector<ADCBoard*> adc_boards;
@@ -15,7 +17,7 @@ class ADCController {
   static PeripheralCommsController* commsController;
 
  public:
-  ADCController(FunctionRegistry& r, PeripheralCommsController& c) {
+  ADCController(PeripheralCommsController& c) {
         instance = this;
       }
 
@@ -147,4 +149,4 @@ class ADCController {
 };
 
 ADCController* ADCController::instance = nullptr;
-PeripheralCommsController* ADCController::commsController = nullptr;
+PeripheralCommsController* ADCController::commsController = new PeripheralCommsController(ADC_SPI_SETTINGS);
