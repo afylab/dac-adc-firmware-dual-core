@@ -5,17 +5,19 @@
 #include <Peripherals/DAC/DACController.h>
 
 #include "Portenta_H7_TimerInterrupt.h"
+#include "Config.h"
 // #include "RPC.h"
+
 
 class God {
  private:
-  static Portenta_H7_Timer adcTimer;
-  static Portenta_H7_Timer dacTimer;
 
-  static God* instance;
 
   inline static volatile bool adcFlag = false;
   inline static volatile bool dacFlag = false;
+
+  inline static HardwareTimer dacTimer = HardwareTimer(TIM15);
+  inline static HardwareTimer adcTimer = HardwareTimer(TIM5);
 
  public:
   static void setup() { initializeRegistry(); }
@@ -54,8 +56,17 @@ class God {
     // ulong startTimeMicros = micros();
     // ulong timeOffset = 0;
 
-    dacTimer.attachInterruptInterval(dac_interval_us, dac_handler);
-    adcTimer.attachInterruptInterval(adc_interval_us, adc_handler);
+    // dacTimer.attachInterruptInterval(dac_interval_us, dac_handler);
+    // adcTimer.attachInterruptInterval(adc_interval_us, adc_handler);
+
+    dacTimer.setOverflow(dac_interval_us, MICROSEC_FORMAT);
+    dacTimer.attachInterrupt(dac_handler);
+
+    adcTimer.setOverflow(adc_interval_us, MICROSEC_FORMAT);
+    adcTimer.attachInterrupt(adc_handler);
+
+    dacTimer.resume();
+    adcTimer.resume();
 
     while (x < saved_data_size) {
       if (adcFlag) {
@@ -69,7 +80,6 @@ class God {
         dacFlag = false;
       }
     }
-
     adcTimer.detachInterrupt();
     dacTimer.detachInterrupt();
 
@@ -105,7 +115,3 @@ class God {
     return OperationResult::Success(output);
   }
 };
-
-God* God::instance = nullptr;
-Portenta_H7_Timer God::adcTimer = Portenta_H7_Timer(TIM14);
-Portenta_H7_Timer God::dacTimer = Portenta_H7_Timer(TIM15);

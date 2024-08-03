@@ -1,3 +1,8 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
@@ -52,11 +57,7 @@
                 "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/ea_malloc",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/mbed-memory-status",
                 "/Users/space/.platformio/packages/framework-arduino-mbed/libraries/syntiant_ilib/src",
-                "",
-                "/Users/space/.platformio/packages/framework-arduino-mbed/cores/arduino/mbed/connectivity/lwipstack/lwip/src/include/compat/posix",
-                "/Users/space/.platformio/packages/framework-arduino-mbed/cores/arduino/mbed/connectivity/lwipstack/lwip/src/include",
-                "/Users/space/.platformio/packages/framework-arduino-mbed/cores/arduino/mbed/connectivity/lwipstack/include/lwipstack",
-                "/Users/space/.platformio/packages/framework-arduino-mbed/cores/arduino/mbed/connectivity/lwipstack/lwip-sys"
+                ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,

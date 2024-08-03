@@ -23,6 +23,7 @@ class DACController {
   static void initializeRegistry() {
     REGISTER_MEMBER_FUNCTION_0(initialize, "INITIALIZE");
     REGISTER_MEMBER_FUNCTION_0(initialize, "INIT");
+    REGISTER_MEMBER_FUNCTION_0(initialize, "INNIT"); // oi bruv u got a loicense for that DAC? 🇬🇧
     REGISTER_MEMBER_FUNCTION_2(setVoltage, "SET");
     REGISTER_MEMBER_FUNCTION_1(getVoltage, "GET_DAC");
   }
