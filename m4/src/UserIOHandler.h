@@ -12,10 +12,19 @@
 struct UserIOHandler {
 
   static void setup() {
+    RPC.begin();
     REGISTER_MEMBER_FUNCTION_0(nop, "NOP");
+    REGISTER_MEMBER_FUNCTION_0(id, "*IDN?");
+    REGISTER_MEMBER_FUNCTION_0(rdy, "*RDY?");
+    REGISTER_MEMBER_FUNCTION_0(serialNumber, "SERIAL_NUMBER");
+    
   }
 
   static OperationResult nop() { return OperationResult::Success("NOP");}
+  static OperationResult id() { return OperationResult::Success("DAC-ADC_AD7734-AD5791");}
+  static OperationResult rdy() { return OperationResult::Success("READY");}
+  static OperationResult serialNumber() { return OperationResult::Success("DA20_16_08");}
+  
 
   static std::vector<String> query_rpc() {
     char received = '\0';
@@ -69,6 +78,7 @@ struct UserIOHandler {
               char* message = new char[result.getMessage().length() + 1];
               result.getMessage().toCharArray(message, result.getMessage().length() + 1);
               RPC.write(message);
+              delete[] message;
             }
             break;
           case FunctionRegistry::ExecuteResult::ArgumentError:

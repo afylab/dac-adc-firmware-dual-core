@@ -3,26 +3,24 @@
 #include <Arduino.h>
 #include <Peripherals/PeripheralCommsController.h>
 
+#include "Config.h"
+
 class DACChannel {
  private:
   float gain_error;
   float offset_error;
   int cs_pin;
-  int ldac;
-  float voltage;
   float voltage_upper_bound;
   float voltage_lower_bound;
   float full_scale = 10.0;
-  PeripheralCommsController *&commsController;
 
  public:
-  DACChannel(PeripheralCommsController *&commsController, int cs_pin, int ldac)
-      : commsController(commsController) {
+  inline static PeripheralCommsController commsController =
+      PeripheralCommsController(DAC_SPI_SETTINGS);
+  DACChannel(int cs_pin) {
     this->cs_pin = cs_pin;
-    this->ldac = ldac;
     offset_error = 0.0;
     gain_error = 1.0;
-    voltage = 0.0;
     voltage_upper_bound = full_scale * gain_error + offset_error;
     voltage_lower_bound = -full_scale * gain_error + offset_error;
   }
@@ -32,11 +30,11 @@ class DACChannel {
     byte bytesToSend[3] = {
         32, 0,
         2};  // Write to control register; Reserved byte; Unclamp DAC from GND
-    commsController->beginTransaction();
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController->transfer(bytesToSend, 3);
+    commsController.transfer(bytesToSend, 3);
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
+    commsController.endTransaction();
     setVoltage(0.0);
   }
 
@@ -48,52 +46,44 @@ class DACChannel {
     digitalWrite(ldac, HIGH);
   }
 
-  float setVoltage(float voltage) {
+  float setVoltage(float v) {
     byte b1;
     byte b2;
     byte b3;
 
-    voltageToDecimal(voltage / gain_error - offset_error, &b1, &b2, &b3);
+    voltageToDecimal(v / gain_error - offset_error, &b1, &b2, &b3);
 
     byte bytesToSend[3] = {b1, b2, b3};
 
-    commsController->beginTransaction();
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController->transfer(bytesToSend,
+    commsController.transfer(bytesToSend,
                              3);  // send command byte to DAC; MS data bits,
                                   // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
+    commsController.endTransaction();
 
     digitalWrite(ldac, LOW);
     digitalWrite(ldac, HIGH);
 
-    float v = gain_error * (threeByteToVoltage(b1, b2, b3) + offset_error);
-    this->voltage = v;
-    return v;
+    return gain_error * (threeByteToVoltage(b1, b2, b3) + offset_error);
   }
 
-  float setVoltageBuffer(float voltage) {
+  void setVoltageNoTransaction(float v) {
     byte b1;
     byte b2;
     byte b3;
 
-    voltageToDecimal(voltage / gain_error - offset_error, &b1, &b2, &b3);
+    voltageToDecimal(v / gain_error - offset_error, &b1, &b2, &b3);
 
     byte bytesToSend[3] = {b1, b2, b3};
 
-    commsController->beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController->transfer(bytesToSend,
+    commsController.transfer(bytesToSend,
                              3);  // send command byte to DAC; MS data bits,
                                   // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
-
-    return threeByteToVoltage(b1, b2, b3);
   }
-
-  float getVoltage() { return this->voltage; }
 
   void setCalibration(float offset, float gain) {
     this->offset_error = offset;
@@ -101,7 +91,7 @@ class DACChannel {
   }
 
   void setFullScale(float full_scale) {
-    full_scale = full_scale;
+    this->full_scale = full_scale;
     voltage_upper_bound = full_scale * gain_error + offset_error;
     voltage_lower_bound = -full_scale * gain_error + offset_error;
   }
@@ -122,32 +112,48 @@ class DACChannel {
 
     byte bytesToSend[3] = {b1, b2, b3};
 
-    commsController->beginTransaction();
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController->transfer(bytesToSend,
+    commsController.transfer(bytesToSend,
                              3);  // send command byte to DAC; MS data bits,
                                   // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
+    commsController.endTransaction();
 
     digitalWrite(ldac, LOW);
 
     digitalWrite(ldac, HIGH);
 
-    float v = gain_error * (threeByteToVoltage(b1, b2, b3) + offset_error);
+    return gain_error * (threeByteToVoltage(b1, b2, b3) + offset_error);
+  }
 
-    voltage = v;
+  float getVoltage() {
+    commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
+    SPI.transfer(144);
+    SPI.transfer(0);
+    SPI.transfer(0);
+    digitalWrite(cs_pin, HIGH);
+    delayMicroseconds(2);
+    digitalWrite(cs_pin, LOW);
+    byte b1 = SPI.transfer(0);
+    byte b2 = SPI.transfer(0);
+    byte b3 = SPI.transfer(0);
+    digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
 
-    return v;
+    // Assuming threeByteToVoltage function exists and works correctly
+    float voltage = threeByteToVoltage(b1, b2, b3);
+    return gain_error * (voltage + offset_error);
   }
 
  private:
-  void voltageToDecimal(float voltage, byte *DB1, byte *DB2, byte *DB3) {
+  void voltageToDecimal(float v, byte *DB1, byte *DB2, byte *DB3) {
     int decimal;
-    if (voltage >= 0) {
-      decimal = voltage * 524287 / full_scale;
+    if (v >= 0) {
+      decimal = v * 524287 / full_scale;
     } else {
-      decimal = voltage * 524288 / full_scale + 1048576;
+      decimal = v * 524288 / full_scale + 1048576;
     }
     intToThreeBytes(decimal, DB1, DB2, DB3);
   }
@@ -165,15 +171,15 @@ class DACChannel {
 
   float threeByteToVoltage(byte DB1, byte DB2, byte DB3) {
     int decimal;
-    float voltage;
+    float v;
 
     decimal = threeByteToInt(DB1, DB2, DB3);
 
     if (decimal <= 524287) {
-      voltage = decimal * full_scale / 524287;
+      v = decimal * full_scale / 524287;
     } else {
-      voltage = -(1048576 - decimal) * full_scale / 524288;
+      v = -(1048576 - decimal) * full_scale / 524288;
     }
-    return voltage;
+    return v;
   }
 };

@@ -17,7 +17,6 @@ class FunctionRegistry {
     String name;
     std::function<OperationResult(const std::vector<float>&)> func;
     int argCount;
-    bool is_void;
 
     FunctionEntry(const String& n,
                   std::function<OperationResult(const std::vector<float>&)> f,
@@ -41,6 +40,15 @@ class FunctionRegistry {
                         OperationResult& result) {
     String upper_name = name;
     upper_name.toUpperCase();
+    if (upper_name == "PRINT_FUNCTIONS") {
+      String message = "Available functions, args: \nPRINT_FUNCTIONS, 0\n";
+      for (const auto& entry : functions) {
+        message += String(entry.name + ", " + entry.argCount + "\n");
+      }
+      message = message.substring(0, message.length() - 1);
+      result = OperationResult::Success(message);
+      return ExecuteResult::Success;
+    }
     for (const auto& entry : functions) {
       if (entry.name == upper_name) {
         if (entry.argCount > 0 && static_cast<int>(entry.argCount) != static_cast<int>(args.size())) {

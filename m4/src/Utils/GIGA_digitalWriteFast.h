@@ -1,7 +1,6 @@
 /*
- *    UNOR4_digitalWriteFast.h - A quick and dirty digitalWriteFast
- *    and digitalToggleFast for Arduino UNO R4.  There are better
- *    versions out there, but this good enough for my testing
+ *    Special thanks to github/KurtE for this library
+ *    https://github.com/KurtE/UNOR4-stuff/blob/main/libraries/GIGA_digitalWriteFast/GIGA_digitalWriteFast.h
  * 
  *    Permission is hereby granted, free of charge, to any person
  *    obtaining a copy of this software and associated documentation

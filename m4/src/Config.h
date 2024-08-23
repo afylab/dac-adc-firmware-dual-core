@@ -3,6 +3,7 @@
 #include <SPI.h>
 
 
+
 #define SERIAL_BAUD_RATE 115200
 
 ///////////////////////////////////////////////////////////////
@@ -20,9 +21,12 @@ const int data = 6; // data indicator LED
 const int err = 11;
 
 
-const static SPISettings DAC_SPI_SETTINGS(20000000, MSBFIRST, SPI_MODE1);
-// const static SPISettings ADC_SPI_SETTINGS(20000000, MSBFIRST, SPI_MODE1); // TEST
-const static SPISettings ADC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE3); // REAL
+const static SPISettings DAC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE3); // REAL
+// const static SPISettings DAC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE1); // TEST
+const static SPISettings ADC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE3);
+
+// static HardwareTimer dacTimer = HardwareTimer(TIM15);
+// static HardwareTimer adcTimer = HardwareTimer(TIM8);
 
 #define NUM_CHANNELS_PER_DAC_BOARD 4
 #define NUM_CHANNELS_PER_ADC_BOARD 4

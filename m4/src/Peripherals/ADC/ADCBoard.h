@@ -59,7 +59,6 @@ class ADCBoard {
   int cs_pin;
   int data_ready_pin;
   int reset_pin;
-  PeripheralCommsController *&commsController;
 
   float map2(float x, long in_min, long in_max, float out_min,
              float out_max)  // float
@@ -87,12 +86,13 @@ class ADCBoard {
   }
 
  public:
-  ADCBoard(PeripheralCommsController *&commsController, int cs_pin,
+  inline static PeripheralCommsController commsController = PeripheralCommsController(ADC_SPI_SETTINGS);
+
+  ADCBoard(int cs_pin,
            int data_ready_pin, int reset_pin)
       : cs_pin(cs_pin),
         data_ready_pin(data_ready_pin),
-        reset_pin(reset_pin),
-        commsController(commsController) {}
+        reset_pin(reset_pin) {}
 
   void setup() {
     pinMode(reset_pin, OUTPUT);
@@ -109,7 +109,6 @@ class ADCBoard {
 
   void initialize() {}
 
-
   double readVoltage(int channel_index) {
     startSingleConversion(channel_index);
     waitDataReady();
@@ -117,46 +116,40 @@ class ADCBoard {
     return ADC2DOUBLE(data);
   }
 
-
   // return ADC status register, pg. 16
   uint8_t getADCStatus() {
     uint8_t data_array;
 
     data_array = READ | ADDR_ADCSTATUS;
 
-    commsController->beginTransaction();
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController->transfer(data_array);
-    byte b = commsController->receiveByte();
+    commsController.transfer(data_array);
+    byte b = commsController.receiveByte();
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
+    commsController.endTransaction();
     return b;
   }
 
   void channelSetup(int adc_channel, uint8_t flags) {
-
-    commsController->beginTransaction();
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController->transfer(WRITE | ADDR_CHANNELSETUP(adc_channel));
-    commsController->transfer(flags);
+    commsController.transfer(WRITE | ADDR_CHANNELSETUP(adc_channel));
+    commsController.transfer(flags);
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
-
+    commsController.endTransaction();
   }
 
   // tells the ADC to start a single conversion on the passed channel
   void startSingleConversion(int adc_channel) {
-
-
-
-    commsController->beginTransaction();
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
     // setup communication register for writing operation to the mode register
-    commsController->transfer(WRITE | ADDR_MODE(adc_channel));
+    commsController.transfer(WRITE | ADDR_MODE(adc_channel));
     // setup mode register
-    commsController->transfer(SINGLE_CONV_MODE);
+    commsController.transfer(SINGLE_CONV_MODE);
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
+    commsController.endTransaction();
 
     // data is ready when _rdy goes low
   }
@@ -174,11 +167,11 @@ class ADCBoard {
     data_array[3] = CONT_CONV_MODE;
 
     // send off command
-    commsController->beginTransaction();
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController->transfer(data_array, 4);
+    commsController.transfer(data_array, 4);
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
+    commsController.endTransaction();
 
     // data is ready when _rdy goes low
   }
@@ -187,10 +180,10 @@ class ADCBoard {
     byte chop_byte = chop == 1 ? 0x80 : 0x00;
     byte send = chop_byte | static_cast<byte>(fw);
     digitalWrite(cs_pin, LOW);
-    commsController->beginTransaction();
-    commsController->transfer(WRITE | ADDR_CHANNELCONVERSIONTIME(adc_channel));
-    commsController->transfer(send);
-    commsController->endTransaction();
+    commsController.beginTransaction();
+    commsController.transfer(WRITE | ADDR_CHANNELCONVERSIONTIME(adc_channel));
+    commsController.transfer(send);
+    commsController.endTransaction();
     digitalWrite(cs_pin, HIGH);
   }
 
@@ -201,22 +194,42 @@ class ADCBoard {
     data_array = READ | ADDR_CHANNELDATA(adc_channel);
 
     // write to the communication register
-    commsController->beginTransaction();
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController->transfer(data_array);
+    commsController.transfer(data_array);
     // read upper and lower bytes of channel data register (16 bit mode)
-    upper = commsController->receiveByte();
-    lower = commsController->receiveByte();
+    upper = commsController.receiveByte();
+    lower = commsController.receiveByte();
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
+    commsController.endTransaction();
 
     uint16_t result = upper << 8 | lower;
 
     return result;
   }
 
+  uint16_t getConversionDataNoTransaction(int adc_channel) {
+    byte data_array, upper, lower;
 
-  std::vector<double> continuousConvert(int channel_index, uint32_t frequency_us, uint32_t duration) {
+    // setup communication register for reading channel data
+    data_array = READ | ADDR_CHANNELDATA(adc_channel);
+
+    // write to the communication register
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(data_array);
+    // read upper and lower bytes of channel data register (16 bit mode)
+    upper = commsController.receiveByte();
+    lower = commsController.receiveByte();
+    digitalWrite(cs_pin, HIGH);
+
+    uint16_t result = upper << 8 | lower;
+
+    return result;
+  }
+
+  std::vector<double> continuousConvert(int channel_index,
+                                        uint32_t frequency_us,
+                                        uint32_t duration) {
     std::vector<double> data;
     uint32_t num_samples = duration / frequency_us;
     startContinuousConversion(channel_index);
@@ -224,21 +237,171 @@ class ADCBoard {
       data.push_back(ADC2DOUBLE(getConversionData(channel_index)));
       delayMicroseconds(frequency_us);
     }
-    // idleMode(channel_index);
+    idleMode(channel_index);
     return data;
   }
 
   void idleMode(int adc_channel) {
-    commsController->beginTransaction();
+    commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController->transfer(WRITE | ADDR_MODE(adc_channel));
-    commsController->transfer(IDLE_MODE);
+    commsController.transfer(WRITE | ADDR_MODE(adc_channel));
+    commsController.transfer(IDLE_MODE);
     digitalWrite(cs_pin, HIGH);
-    commsController->endTransaction();
+    commsController.endTransaction();
   }
 
   bool isChannelActive(int adc_channel) {
     uint8_t status = getADCStatus();
     return (status & (1 << adc_channel)) != 0;
+  }
+
+  void reset() {
+    commsController.beginTransaction();
+    digitalWrite(reset_pin, HIGH);
+    digitalWrite(reset_pin, LOW);
+    delay(5);
+    digitalWrite(reset_pin, HIGH);
+
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(0x28);
+    digitalWrite(cs_pin, HIGH);
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(0);
+    digitalWrite(cs_pin, HIGH);
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(0x2A);
+    digitalWrite(cs_pin, HIGH);
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(0);
+    digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
+  }
+
+  uint8_t talkADC(byte command) {
+    commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
+    uint8_t comm = commsController.transfer(command);
+    digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
+    return comm;
+  }
+
+  // chop = true
+  float setConversionTime(int channel, float time_us) {
+    bool moreThanOneChannelActive = isMoreThanOneChannelActive();
+    return setConversionTime(
+        channel, true,
+        calculateFilterWord(time_us, true, moreThanOneChannelActive),
+        moreThanOneChannelActive);
+  }
+
+  float setConversionTime(int channel, bool chop, byte fw,
+                          bool moreThanOneChannelActive) {
+    if ((fw > 127) || (chop && fw < 2) || (!chop && fw < 3)) {
+      return -1;
+    }
+
+    byte chop_byte = chop ? 0b10000000 : 0b00000000;
+    byte send = chop_byte | fw;
+    commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(WRITE | ADDR_CHANNELCONVERSIONTIME(channel));
+    commsController.transfer(send);
+    digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
+
+    delayMicroseconds(100);
+
+    // could've done the calculation with user-given values but it's good to
+    // check
+    return getConversionTime(channel, moreThanOneChannelActive);
+  }
+
+  float getConversionTime(int channel, bool moreThanOneChannelActive) {
+    commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(READ | ADDR_CHANNELCONVERSIONTIME(channel));
+    byte b = commsController.receiveByte();
+    digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
+
+    return calculateConversionTime(b, moreThanOneChannelActive);
+  }
+
+  float calculateConversionTime(byte b, bool moreThanOneChannelActive) {
+    // convert to actual conversion time
+    byte received_fw = b & 0b01111111;
+    bool received_chop = b & 0b10000000;
+    if (received_chop) {
+      if (moreThanOneChannelActive) {  // FW range is 2 to 127
+        return (received_fw * 128.0 + 249.0) / 6.144;
+      } else {
+        return (received_fw * 128.0 + 248.0) / 6.144;
+      }
+    } else {  // FW range is 3 to 127
+      if (moreThanOneChannelActive) {
+        return (received_fw * 64.0 + 206.0) / 6.144;
+      } else {
+        return (received_fw * 64.0 + 207.0) / 6.144;
+      }
+    }
+
+    return -1;
+  }
+
+  byte calculateFilterWord(float time_us, bool chop,
+                           bool moreThanOneChannelActive) {
+    byte out;
+    if (chop) {
+      if (moreThanOneChannelActive) {
+        out = static_cast<byte>((time_us * 6.144 - 249.0) / 128.0);
+      } else {
+        out = static_cast<byte>((time_us * 6.144 - 248.0) / 128.0);
+      }
+      if (out < 2) return 2;
+    } else {
+      if (moreThanOneChannelActive) {
+        out = static_cast<byte>((time_us * 6.144 - 206.0) / 64.0);
+      } else {
+        out = static_cast<byte>((time_us * 6.144 - 207.0) / 64.0);
+      }
+      if (out < 3) return 3;
+    }
+    if (out > 127) return 127;
+    return out;
+  }
+
+  bool isMoreThanOneChannelActive() {
+    return (getADCStatus() & 0b00001111) != 0;
+  }
+
+  void zeroScaleSelfCalibration() {
+    commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(WRITE | ADDR_MODE(0)); // channel is zero but this is system-wide
+    commsController.transfer(ZERO_SCALE_SELF_CAL_MODE);
+    digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
+    waitDataReady();
+  }
+
+  void zeroScaleChannelSystemSelfCalibration(int channel) {
+    commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(WRITE | ADDR_MODE(channel));
+    commsController.transfer(CH_ZERO_SCALE_SYS_CAL_MODE);
+    digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
+    waitDataReady();
+  }
+
+  void fullScaleChannelSystemSelfCalibration(int channel) {
+    commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
+    commsController.transfer(WRITE | ADDR_MODE(channel));
+    commsController.transfer(CH_FULL_SCALE_SYS_CAL_MODE);
+    digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
+    waitDataReady();
   }
 };

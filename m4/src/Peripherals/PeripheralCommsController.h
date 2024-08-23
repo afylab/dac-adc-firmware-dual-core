@@ -30,7 +30,7 @@ class PeripheralCommsController {
 
   void transfer(void* buf, size_t count) { SPI.transfer(buf, count); }
 
-  void transfer(uint8_t data) { SPI.transfer(data); }
+  uint8_t transfer(uint8_t data) { SPI.transfer(data); }
 
 };
 

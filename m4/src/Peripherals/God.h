@@ -4,93 +4,319 @@
 #include <Peripherals/ADC/ADCController.h>
 #include <Peripherals/DAC/DACController.h>
 
-#include "Portenta_H7_TimerInterrupt.h"
 #include "Config.h"
-// #include "RPC.h"
-
+#include "Utils/TimingUtil.h"
 
 class God {
- private:
-
-
-  inline static volatile bool adcFlag = false;
-  inline static volatile bool dacFlag = false;
-
-  inline static HardwareTimer dacTimer = HardwareTimer(TIM15);
-  inline static HardwareTimer adcTimer = HardwareTimer(TIM5);
-
  public:
   static void setup() { initializeRegistry(); }
 
   static void initializeRegistry() {
-    REGISTER_MEMBER_FUNCTION_7(bufferRampSteps, "BUFFER_RAMP_STEPS");
-    REGISTER_MEMBER_FUNCTION_0(printData, "PRINT_DATA");
+    REGISTER_MEMBER_FUNCTION_VECTOR(timeSeriesBufferRampWrapper,
+                                    "TIME_SERIES_BUFFER_RAMP");
+    REGISTER_MEMBER_FUNCTION_VECTOR(dacLedBufferRampWrapper, "DAC_LED_BUFFER_RAMP");
+    REGISTER_MEMBER_FUNCTION_0(dacChannelCalibration, "DAC_CH_CAL");
   }
 
-  inline static std::vector<float> saved_data;
+  // args:
+  // numDacChannels, numAdcChannels, numSteps, dacInterval_us, adcInterval_us,
+  // dacchannel0, dacv00, dacvf0, dacchannel1, dacv01, dacvf1, ..., adc0, adc1,
+  // ...
+  static OperationResult timeSeriesBufferRampWrapper(
+      const std::vector<float>& args) {
+    if (args.size() < 5) {
+      return OperationResult::Failure("Not enough arguments provided");
+    }
 
-  static OperationResult bufferRampSteps(int adcChannel, int dacChannel,
-                                         float v0, float vf, int numSteps,
-                                         uint32_t adc_interval_us,
-                                         uint32_t dac_interval_us) {
-    saved_data.clear();
+    int numDacChannels = static_cast<int>(args[0]);
+    int numAdcChannels = static_cast<int>(args[1]);
+    int numSteps = static_cast<int>(args[2]);
+    uint32_t dac_interval_us = static_cast<uint32_t>(args[3]);
+    uint32_t adc_interval_us = static_cast<uint32_t>(args[4]);
+
+    // Check if we have enough arguments for all DAC and ADC channels
+    if (args.size() !=
+        static_cast<size_t>(5 + numDacChannels * 3 + numAdcChannels)) {
+      return OperationResult::Failure("Incorrect number of arguments");
+    }
+
+    // Allocate memory for DAC and ADC channel information
+    int* dacChannels = new int[numDacChannels];
+    int* dacV0s = new int[numDacChannels];
+    int* dacVfs = new int[numDacChannels];
+    int* adcChannels = new int[numAdcChannels];
+
+    // Parse DAC channel information
+    for (int i = 0; i < numDacChannels; ++i) {
+      int baseIndex = 5 + i * 3;
+      dacChannels[i] = static_cast<int>(args[baseIndex]);
+      dacV0s[i] = static_cast<int>(args[baseIndex + 1]);
+      dacVfs[i] = static_cast<int>(args[baseIndex + 2]);
+    }
+
+    // Parse ADC channel information
+    for (int i = 0; i < numAdcChannels; ++i) {
+      adcChannels[i] = static_cast<int>(args[5 + numDacChannels * 3 + i]);
+    }
+
+    return timeSeriesBufferRampBase(numDacChannels, numAdcChannels, numSteps,
+                                    dac_interval_us, adc_interval_us,
+                                    dacChannels, dacV0s, dacVfs, adcChannels);
+  }
+
+  static OperationResult timeSeriesBufferRampBase(
+      int numDacChannels, int numAdcChannels, int numSteps,
+      uint32_t dac_interval_us, uint32_t adc_interval_us, int* dacChannels,
+      int* dacV0s, int* dacVfs, int* adcChannels) {
     if (adc_interval_us < 1 || dac_interval_us < 1) {
       return OperationResult::Failure("Invalid interval");
     }
-
-    ADCController::startContinuousConversion(adcChannel);
 
     int steps = 0;
     int x = 0;
 
     const int saved_data_size = numSteps * dac_interval_us / adc_interval_us;
-    float* data = new float[saved_data_size];
-    bool start = false;
 
-    float* voltSetpoints = new float[numSteps];
+    float** dataMatrix = new float*[numAdcChannels];
 
-    for (int i = 0; i < numSteps; i++) {
-      voltSetpoints[i] = v0 + (vf - v0) * i / (numSteps - 1);
+    for (int i = 0; i < numAdcChannels; i++) {
+      dataMatrix[i] = new float[saved_data_size];
     }
-    
-    // ulong startTimeMicros = micros();
-    // ulong timeOffset = 0;
 
-    // dacTimer.attachInterruptInterval(dac_interval_us, dac_handler);
-    // adcTimer.attachInterruptInterval(adc_interval_us, adc_handler);
+    float** voltSetpoints = new float*[numDacChannels];
 
-    dacTimer.setOverflow(dac_interval_us, MICROSEC_FORMAT);
-    dacTimer.attachInterrupt(dac_handler);
+    for (int i = 0; i < numDacChannels; i++) {
+      voltSetpoints[i] = new float[numSteps];
+      for (int j = 0; j < numSteps; j++) {
+        voltSetpoints[i][j] =
+            dacV0s[i] + (dacVfs[i] - dacV0s[i]) * j / (numSteps - 1);
+      }
+    }
 
-    adcTimer.setOverflow(adc_interval_us, MICROSEC_FORMAT);
-    adcTimer.attachInterrupt(adc_handler);
+    TimingUtil::setupTimersTimeSeries(dac_interval_us, adc_interval_us);
 
-    dacTimer.resume();
-    adcTimer.resume();
+    for (int i = 0; i < numAdcChannels; i++) {
+      ADCController::startContinuousConversion(adcChannels[i]);
+    }
 
     while (x < saved_data_size) {
-      if (adcFlag) {
-        data[x] = ADCController::getVoltageData(adcChannel);
-        x++;
-        adcFlag = false;
+      if (TimingUtil::adcFlag) {
+        ADCBoard::commsController.beginTransaction();
+        if (steps <= 1) {
+          for (int i = 0; i < numAdcChannels; i++) {
+            ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+          }
+        } else {
+          for (int i = 0; i < numAdcChannels; i++) {
+            dataMatrix[i][x] =
+                ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+          }
+          x++;
+        }
+        ADCBoard::commsController.endTransaction();
+        TimingUtil::adcFlag = false;
       }
-      if (dacFlag) {
-        DACController::setVoltage(dacChannel, voltSetpoints[steps]);
+      if (TimingUtil::dacFlag && steps < numSteps + 1) {
+        DACChannel::commsController.beginTransaction();
+        if (steps == 0) {
+          for (int i = 0; i < numDacChannels; i++) {
+            DACController::setVoltageNoTransaction(dacChannels[i],
+                                                   voltSetpoints[i][0]);
+          }
+        } else {
+          for (int i = 0; i < numDacChannels; i++) {
+            DACController::setVoltageNoTransaction(dacChannels[i],
+                                                   voltSetpoints[i][steps-1]);
+          }
+        }
+        DACController::toggleLdac();
+        DACChannel::commsController.endTransaction();
         steps++;
-        dacFlag = false;
+        TimingUtil::dacFlag = false;
       }
     }
-    adcTimer.detachInterrupt();
-    dacTimer.detachInterrupt();
 
-    ADCController::idleMode(adcChannel);
+    TimingUtil::disableDacInterrupt();
+    TimingUtil::disableAdcInterrupt();
 
-    for (int i = 0; i < saved_data_size; i++) {
-      saved_data.push_back(static_cast<float>(data[i]));
+    for (int i = 0; i < numAdcChannels; i++) {
+      ADCController::idleMode(adcChannels[i]);
     }
 
-    return OperationResult::Success("Done, x: " + String(x) +
-                                    ", steps: " + String(steps));
+    String output = "";
+
+    for (int i = 0; i < numAdcChannels; i++) {
+      output += "ADC Channel " + String(adcChannels[i]) + ":\n";
+      output += String(static_cast<float>(dataMatrix[i][0]), 6);
+      for (int j = 1; j < saved_data_size; j++) {
+        output += "\n" + String(static_cast<float>(dataMatrix[i][j]), 6);
+      }
+      output += "\n";
+    }
+
+    for (int i = 0; i < numAdcChannels; i++) {
+      delete[] dataMatrix[i];
+    }
+    delete[] dataMatrix;
+
+    for (int i = 0; i < numDacChannels; i++) {
+      delete[] voltSetpoints[i];
+    }
+    delete[] voltSetpoints;
+
+    return OperationResult::Success(
+        "Done, x: " + String(x) + ", steps: " + String(steps) + "\n" + output);
+  }
+
+  // args:
+  // numDacChannels, numAdcChannels, numSteps, dacInterval_us, dacSettlingTime_us,
+  // dacchannel0, dacv00, dacvf0, dacchannel1, dacv01, dacvf1, ..., adc0, adc1,
+  // ...
+  static OperationResult dacLedBufferRampWrapper(
+      const std::vector<float>& args) {
+    if (args.size() < 5) {
+      return OperationResult::Failure("Not enough arguments provided");
+    }
+
+    int numDacChannels = static_cast<int>(args[0]);
+    int numAdcChannels = static_cast<int>(args[1]);
+    int numSteps = static_cast<int>(args[2]);
+    uint32_t dac_interval_us = static_cast<uint32_t>(args[3]);
+    uint32_t dac_settling_time_us = static_cast<uint32_t>(args[4]);
+
+    // Check if we have enough arguments for all DAC and ADC channels
+    if (args.size() !=
+        static_cast<size_t>(5 + numDacChannels * 3 + numAdcChannels)) {
+      return OperationResult::Failure("Incorrect number of arguments");
+    }
+
+    // Allocate memory for DAC and ADC channel information
+    int* dacChannels = new int[numDacChannels];
+    int* dacV0s = new int[numDacChannels];
+    int* dacVfs = new int[numDacChannels];
+    int* adcChannels = new int[numAdcChannels];
+
+    // Parse DAC channel information
+    for (int i = 0; i < numDacChannels; ++i) {
+      int baseIndex = 5 + i * 3;
+      dacChannels[i] = static_cast<int>(args[baseIndex]);
+      dacV0s[i] = static_cast<int>(args[baseIndex + 1]);
+      dacVfs[i] = static_cast<int>(args[baseIndex + 2]);
+    }
+
+    // Parse ADC channel information
+    for (int i = 0; i < numAdcChannels; ++i) {
+      adcChannels[i] = static_cast<int>(args[5 + numDacChannels * 3 + i]);
+    }
+
+    return dacLedBufferRampBase(numDacChannels, numAdcChannels, numSteps,
+                                dac_interval_us, dac_settling_time_us,
+                                dacChannels, dacV0s, dacVfs, adcChannels);
+  }
+
+  static OperationResult dacLedBufferRampBase(int numDacChannels,
+                                              int numAdcChannels, int numSteps,
+                                              uint32_t dac_interval_us,
+                                              uint32_t dac_settling_time_us,
+                                              int* dacChannels, int* dacV0s,
+                                              int* dacVfs, int* adcChannels) {
+    if (dac_settling_time_us < 1 || dac_interval_us < 1 ||
+        dac_settling_time_us >= dac_interval_us) {
+      return OperationResult::Failure("Invalid interval or settling time");
+    }
+
+    int steps = 0;
+    int x = 0;
+
+    float** dataMatrix = new float*[numAdcChannels];
+
+    for (int i = 0; i < numAdcChannels; i++) {
+      dataMatrix[i] = new float[numSteps];
+    }
+
+    float** voltSetpoints = new float*[numDacChannels];
+
+    for (int i = 0; i < numDacChannels; i++) {
+      voltSetpoints[i] = new float[numSteps];
+      for (int j = 0; j < numSteps; j++) {
+        voltSetpoints[i][j] =
+            dacV0s[i] + (dacVfs[i] - dacV0s[i]) * j / (numSteps - 1);
+      }
+    }
+
+    // Set up timers with the same period but phase shifted
+    TimingUtil::setupTimersDacLed(dac_interval_us, dac_settling_time_us);
+
+    for (int i = 0; i < numAdcChannels; i++) {
+      ADCController::startContinuousConversion(adcChannels[i]);
+    }
+    while (x < numSteps) {
+      if (TimingUtil::adcFlag) {
+        ADCBoard::commsController.beginTransaction();
+        if (steps <= 1) {
+          for (int i = 0; i < numAdcChannels; i++) {
+            ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+          }
+        } else {
+          for (int i = 0; i < numAdcChannels; i++) {
+            dataMatrix[i][x] =
+                ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+          }
+          x++;
+        }
+        ADCBoard::commsController.endTransaction();
+        TimingUtil::adcFlag = false;
+      }
+      if (TimingUtil::dacFlag && steps < numSteps + 1) {
+        DACChannel::commsController.beginTransaction();
+        if (steps == 0) {
+          for (int i = 0; i < numDacChannels; i++) {
+            DACController::setVoltageNoTransaction(dacChannels[i],
+                                                   voltSetpoints[i][0]);
+          }
+        } else {
+          for (int i = 0; i < numDacChannels; i++) {
+            DACController::setVoltageNoTransaction(dacChannels[i],
+                                                   voltSetpoints[i][steps-1]);
+          }
+        }
+        DACController::toggleLdac();
+        DACChannel::commsController.endTransaction();
+        steps++;
+        TimingUtil::dacFlag = false;
+      }
+    }
+
+    TimingUtil::disableDacInterrupt();
+    TimingUtil::disableAdcInterrupt();
+
+    for (int i = 0; i < numAdcChannels; i++) {
+      ADCController::idleMode(adcChannels[i]);
+    }
+
+    String output = "";
+
+    for (int i = 0; i < numAdcChannels; i++) {
+      output += "ADC Channel " + String(adcChannels[i]) + ":\n";
+      output += String(static_cast<float>(dataMatrix[i][0]), 6);
+      for (int j = 1; j < numSteps; j++) {
+        output += "\n" + String(static_cast<float>(dataMatrix[i][j]), 6);
+      }
+      output += "\n";
+    }
+
+    for (int i = 0; i < numAdcChannels; i++) {
+      delete[] dataMatrix[i];
+    }
+    delete[] dataMatrix;
+
+    for (int i = 0; i < numDacChannels; i++) {
+      delete[] voltSetpoints[i];
+    }
+    delete[] voltSetpoints;
+
+    return OperationResult::Success(
+        "Done, x: " + String(x) + ", steps: " + String(steps) + "\n" + output);
   }
 
   static char* stringToCharBuffer(String str) {
@@ -99,19 +325,20 @@ class God {
     return buffer;
   }
 
-  static void adc_handler() {
-    adcFlag = true;
-  }
-
-  static void dac_handler() {
-    dacFlag = true;
-  }
-
-  static OperationResult printData() {
-    String output = "";
-    for (size_t i = 0; i < saved_data.size(); i++) {
-      output += String(saved_data[i], 6) + "\n";
+  static OperationResult dacChannelCalibration() {
+    for (int i = 0; i < NUM_CHANNELS_PER_DAC_BOARD; i++) {
+      DACController::initialize();
+      DACController::setCalibration(i, 0, 1);
+      DACController::setVoltage(i, 0);
+      delay(1);
+      float offsetError = ADCController::getVoltage(i);
+      DACController::setCalibration(i, offsetError, 1);
+      float voltSet = 9.0;
+      DACController::setVoltage(i, voltSet);
+      delay(1);
+      float gainError = (ADCController::getVoltage(i) - offsetError) / voltSet;
+      DACController::setCalibration(i, offsetError, gainError);
     }
-    return OperationResult::Success(output);
+    return OperationResult::Success("CALIBRATION_FINISHED");
   }
 };
