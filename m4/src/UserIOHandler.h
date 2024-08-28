@@ -63,7 +63,7 @@ struct UserIOHandler {
 
         for (size_t i = 1; i < comm.size(); ++i) {
           if (!isValidFloat(comm[i])) {
-            RPC.write("Invalid arguments!");
+            RPC.println("Invalid arguments!");
             return;
           }
           args.push_back(comm[i].toFloat());
@@ -77,15 +77,15 @@ struct UserIOHandler {
             if (result.hasMessage()) {
               char* message = new char[result.getMessage().length() + 1];
               result.getMessage().toCharArray(message, result.getMessage().length() + 1);
-              RPC.write(message);
+              RPC.println(message);
               delete[] message;
             }
             break;
           case FunctionRegistry::ExecuteResult::ArgumentError:
-            RPC.write("Error: Argument error");
+            RPC.println("Error: Argument error");
             break;
           case FunctionRegistry::ExecuteResult::FunctionNotFound:
-            RPC.write("Error: Function not found");
+            RPC.println("Error: Function not found");
             break;
         }
       }

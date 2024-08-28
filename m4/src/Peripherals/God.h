@@ -165,8 +165,7 @@ class God {
     }
     delete[] voltSetpoints;
 
-    return OperationResult::Success(
-        "Done, x: " + String(x) + ", steps: " + String(steps) + "\n" + output);
+    return OperationResult::Success(output);
   }
 
   // args:
@@ -317,8 +316,7 @@ class God {
     }
     delete[] voltSetpoints;
 
-    return OperationResult::Success(
-        "Done, x: " + String(x) + ", steps: " + String(steps) + "\n" + output);
+    return OperationResult::Success(output);
   }
 
   static char* stringToCharBuffer(String str) {
