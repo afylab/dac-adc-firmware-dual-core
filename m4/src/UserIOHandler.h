@@ -27,22 +27,17 @@ struct UserIOHandler {
   
 
   static std::vector<String> query_rpc() {
-    char received = '\0';
-    String inByte = "";
+    String input = RPC.readStringUntil('\n');
+    input.trim();
     std::vector<String> comm;
-    while (received != '\r')  // Wait for carriage return
-    {
-      if (RPC.available()) {
-        received = RPC.read();
-        if (received == '\n' || received == ' ') {
-        } else if (received == ',' || received == '\r') {
-          comm.push_back(inByte);  // Adds string to vector of command arguments
-          inByte = "";             // Resets to a null string for the next word
-        } else {
-          inByte += received;  // Adds newest char to end of string
-        }
-      }
+    int startPos = 0;
+    int commaPos = input.indexOf(',');
+    while (commaPos != -1) {
+      comm.push_back(input.substring(startPos, commaPos));
+      startPos = commaPos + 1;
+      commaPos = input.indexOf(',', startPos);
     }
+    comm.push_back(input.substring(startPos));
     return comm;
   }
 

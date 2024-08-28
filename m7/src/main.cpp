@@ -6,7 +6,6 @@ void setup() {
   RPC.begin();
 }
 
-int i = 0;
 void loop() {
   String buffer = "";
   while (RPC.available()) {
