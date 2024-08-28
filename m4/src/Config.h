@@ -2,10 +2,6 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-
-
-#define SERIAL_BAUD_RATE 115200
-
 ///////////////////////////////////////////////////////////////
 //  Arduino pin initialization - used to appropriately map   //
 //  physical GPIO to software data names                     //
@@ -18,17 +14,11 @@ const int reset[2] = {46, 44}; // reset pins on ADC
 const int drdy[2] = {50, 40}; // data_ready pin for both ADCs -- used as input to indicate ADC conversion has completed
 const int led = 7; // indicator LED
 const int data = 6; // data indicator LED
-const int err = 11;
+const int err = 11; // error indicator LED
 
 
-const static SPISettings DAC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE3); // REAL
-// const static SPISettings DAC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE1); // TEST
+const static SPISettings DAC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE3);
 const static SPISettings ADC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE3);
-
-// static HardwareTimer dacTimer = HardwareTimer(TIM15);
-// static HardwareTimer adcTimer = HardwareTimer(TIM8);
 
 #define NUM_CHANNELS_PER_DAC_BOARD 4
 #define NUM_CHANNELS_PER_ADC_BOARD 4
-
-#define DEFAULT_DAC_FULL_SCALE = 10.0;

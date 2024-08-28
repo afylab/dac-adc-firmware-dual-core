@@ -60,7 +60,7 @@ class ADCController {
 
   static OperationResult readChannelVoltage(int channel_index) {
     if (isChannelIndexValid(channel_index)) {
-      return OperationResult::Success(String(getVoltage(channel_index), 6));
+      return OperationResult::Success(String(getVoltage(channel_index), 9));
     } else {
       return OperationResult::Failure("Invalid channel index");
     }
@@ -71,7 +71,7 @@ class ADCController {
         getChannelIndexFromGlobalIndex(channel_index));
   }
 
-  static uint16_t getConversionData(int adc_channel) {
+  static uint32_t getConversionData(int adc_channel) {
     return adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         .getConversionData(getChannelIndexFromGlobalIndex(adc_channel));
   }
@@ -112,7 +112,7 @@ class ADCController {
                                frequency_us, duration_us);
     String result = "";
     for (auto d : data) {
-      result += String(d, 6) + ",";
+      result += String(d, 9) + ",";
     }
     result = result.substring(0, result.length() - 1);
 
@@ -142,7 +142,7 @@ class ADCController {
   static String parseVector(std::vector<double> data) {
     String result = "";
     for (auto d : data) {
-      result += String(d, 6) + ",";
+      result += String(d, 9) + ",";
     }
     return result.substring(0, result.length() - 1);
   }
@@ -171,7 +171,7 @@ class ADCController {
   static OperationResult talkADC(byte command) {
     String results = "";
     for (auto board : adc_boards) {
-      results += String(board.talkADC(command), 6) + "\n";
+      results += String(board.talkADC(command), 9) + "\n";
     }
     return OperationResult::Success(results);
   }
@@ -209,6 +209,6 @@ class ADCController {
       return OperationResult::Failure(
           "The filter word you selected is not valid.");
     }
-    return OperationResult::Success(String(setpoint, 6));
+    return OperationResult::Success(String(setpoint, 9));
   }
 };

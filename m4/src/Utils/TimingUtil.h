@@ -121,7 +121,7 @@ struct TimingUtil {
 
     // Set up phase shift
     if (phase_shift_us > 0 && phase_shift_us < period_us) {
-      TIM8->CCR1 = phase_shift_us + 1;
+      TIM8->CCR1 = phase_shift_us + 2;
       TIM8->CCMR1 |= TIM_CCMR1_OC1M_1 |
                      TIM_CCMR1_OC1M_2;  // Output Compare mode: PWM mode 1
       TIM8->CCER |= TIM_CCER_CC1E;      // Enable Capture/Compare 1 output

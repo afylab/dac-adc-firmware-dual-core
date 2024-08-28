@@ -14,7 +14,8 @@ class God {
   static void initializeRegistry() {
     REGISTER_MEMBER_FUNCTION_VECTOR(timeSeriesBufferRampWrapper,
                                     "TIME_SERIES_BUFFER_RAMP");
-    REGISTER_MEMBER_FUNCTION_VECTOR(dacLedBufferRampWrapper, "DAC_LED_BUFFER_RAMP");
+    REGISTER_MEMBER_FUNCTION_VECTOR(dacLedBufferRampWrapper,
+                                    "DAC_LED_BUFFER_RAMP");
     REGISTER_MEMBER_FUNCTION_0(dacChannelCalibration, "DAC_CH_CAL");
   }
 
@@ -121,12 +122,12 @@ class God {
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransaction(dacChannels[i],
-                                                   voltSetpoints[i][0]);
+             voltSetpoints[i][0]);
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransaction(dacChannels[i],
-                                                   voltSetpoints[i][steps-1]);
+             voltSetpoints[i][steps-1]);
           }
         }
         DACController::toggleLdac();
@@ -147,9 +148,9 @@ class God {
 
     for (int i = 0; i < numAdcChannels; i++) {
       output += "ADC Channel " + String(adcChannels[i]) + ":\n";
-      output += String(static_cast<float>(dataMatrix[i][0]), 6);
+      output += String(static_cast<float>(dataMatrix[i][0]), 9);
       for (int j = 1; j < saved_data_size; j++) {
-        output += "\n" + String(static_cast<float>(dataMatrix[i][j]), 6);
+        output += "\n" + String(static_cast<float>(dataMatrix[i][j]), 9);
       }
       output += "\n";
     }
@@ -169,8 +170,9 @@ class God {
   }
 
   // args:
-  // numDacChannels, numAdcChannels, numSteps, dacInterval_us, dacSettlingTime_us,
-  // dacchannel0, dacv00, dacvf0, dacchannel1, dacv01, dacvf1, ..., adc0, adc1,
+  // numDacChannels, numAdcChannels, numSteps, dacInterval_us,
+  // dacSettlingTime_us, dacchannel0, dacv00, dacvf0, dacchannel1, dacv01,
+  // dacvf1, ..., adc0, adc1,
   // ...
   static OperationResult dacLedBufferRampWrapper(
       const std::vector<float>& args) {
@@ -277,7 +279,7 @@ class God {
         } else {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransaction(dacChannels[i],
-                                                   voltSetpoints[i][steps-1]);
+                                                   voltSetpoints[i][steps - 1]);
           }
         }
         DACController::toggleLdac();
@@ -298,9 +300,9 @@ class God {
 
     for (int i = 0; i < numAdcChannels; i++) {
       output += "ADC Channel " + String(adcChannels[i]) + ":\n";
-      output += String(static_cast<float>(dataMatrix[i][0]), 6);
+      output += String(static_cast<float>(dataMatrix[i][0]), 9);
       for (int j = 1; j < numSteps; j++) {
-        output += "\n" + String(static_cast<float>(dataMatrix[i][j]), 6);
+        output += "\n" + String(static_cast<float>(dataMatrix[i][j]), 9);
       }
       output += "\n";
     }

@@ -36,23 +36,36 @@
 #define ADDR_CHANNELCONVERSIONTIME(adc_channel) (0x30 + adc_channel)
 #define ADDR_MODE(adc_channel) (0x38 + adc_channel)
 
+
+
+#define BIT_MODE16 0 << 1
+#define BIT_MODE24 1 << 1
+
+// SELECT ADC RESOLUTION HERE
+#define BIT_MODE BIT_MODE24
+
 // Operational Mode Register, Table 12
 // mode bits (MD2, MD1, MD0 bits)
-#define IDLE_MODE 0 << 5
-#define CONT_CONV_MODE 1 << 5
-#define SINGLE_CONV_MODE 2 << 5
-#define PWR_DOWN_MODE 3 << 5
-#define ZERO_SCALE_SELF_CAL_MODE 4 << 5
-#define CH_ZERO_SCALE_SYS_CAL_MODE 6 << 5
-#define CH_FULL_SCALE_SYS_CAL_MODE 7 << 5
+#define IDLE_MODE 0 << 5 | BIT_MODE
+#define CONT_CONV_MODE 1 << 5 | BIT_MODE
+#define SINGLE_CONV_MODE 2 << 5 | BIT_MODE
+#define PWR_DOWN_MODE 3 << 5 | BIT_MODE
+#define ZERO_SCALE_SELF_CAL_MODE 4 << 5 | BIT_MODE
+#define CH_ZERO_SCALE_SYS_CAL_MODE 6 << 5 | BIT_MODE
+#define CH_FULL_SCALE_SYS_CAL_MODE 7 << 5 | BIT_MODE
 #define CH_EN_CONT_CONV 1 << 3
 
-// resolution for 16 bit mode operation, the ADC supports 16 or 24 bit
-// resolution.
+
 #define ADCRES16 65535.0
+#define ADCRES24 16777215.0
+
 // full scale range, can take 4 different values
 #define FSR 20.0
-#define ADC2DOUBLE(vin) (FSR * ((double)vin - (ADCRES16 / 2.0)) / ADCRES16)
+#define ADC2DOUBLE16(vin) (FSR * ((double)vin - (ADCRES16 / 2.0)) / ADCRES16)
+#define ADC2DOUBLE24(vin) (FSR * ((double)vin - (ADCRES24 / 2.0)) / ADCRES24)
+
+// SELECT ADC RESOLUTION HERE
+#define ADC2DOUBLE(vin) ADC2DOUBLE24(vin)
 
 class ADCBoard {
  private:
@@ -60,22 +73,6 @@ class ADCBoard {
   int data_ready_pin;
   int reset_pin;
 
-  float map2(float x, long in_min, long in_max, float out_min,
-             float out_max)  // float
-  {
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-  }
-
-  int twoByteToInt(byte DB1,
-                   byte DB2)  // This gives a 16 bit integer (between +/- 2^16)
-  {
-    return ((int)((DB1 << 8) | DB2));
-  }
-
-  void intToTwoByte(int s, byte *DB1, byte *DB2) {
-    *DB1 = ((byte)((s >> 8) & 0xFF));
-    *DB2 = ((byte)(s & 0xFF));
-  }
 
   void waitDataReady() {
     int count = 0;
@@ -112,7 +109,7 @@ class ADCBoard {
   double readVoltage(int channel_index) {
     startSingleConversion(channel_index);
     waitDataReady();
-    uint16_t data = getConversionData(channel_index);
+    uint32_t data = getConversionData(channel_index);
     return ADC2DOUBLE(data);
   }
 
@@ -187,8 +184,9 @@ class ADCBoard {
     digitalWrite(cs_pin, HIGH);
   }
 
-  uint16_t getConversionData(int adc_channel) {
-    byte data_array, upper, lower;
+  uint32_t getConversionData(int adc_channel) {
+    byte data_array;
+    uint32_t upper, lower, last;
 
     // setup communication register for reading channel data
     data_array = READ | ADDR_CHANNELDATA(adc_channel);
@@ -200,16 +198,18 @@ class ADCBoard {
     // read upper and lower bytes of channel data register (16 bit mode)
     upper = commsController.receiveByte();
     lower = commsController.receiveByte();
+    last = commsController.receiveByte();
     digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
 
-    uint16_t result = upper << 8 | lower;
+    uint32_t result = upper << 16 | lower << 8 | last;
 
     return result;
   }
 
-  uint16_t getConversionDataNoTransaction(int adc_channel) {
-    byte data_array, upper, lower;
+  uint32_t getConversionDataNoTransaction(int adc_channel) {
+    byte data_array;
+    uint32_t upper, lower, last;
 
     // setup communication register for reading channel data
     data_array = READ | ADDR_CHANNELDATA(adc_channel);
@@ -220,22 +220,23 @@ class ADCBoard {
     // read upper and lower bytes of channel data register (16 bit mode)
     upper = commsController.receiveByte();
     lower = commsController.receiveByte();
+    last = commsController.receiveByte();
     digitalWrite(cs_pin, HIGH);
 
-    uint16_t result = upper << 8 | lower;
+    uint32_t result = upper << 16 | lower << 8 | last;
 
     return result;
   }
 
   std::vector<double> continuousConvert(int channel_index,
-                                        uint32_t frequency_us,
+                                        uint32_t period_us,
                                         uint32_t duration) {
     std::vector<double> data;
-    uint32_t num_samples = duration / frequency_us;
+    uint32_t num_samples = duration / period_us;
     startContinuousConversion(channel_index);
     for (uint32_t i = 0; i < num_samples; i++) {
       data.push_back(ADC2DOUBLE(getConversionData(channel_index)));
-      delayMicroseconds(frequency_us);
+      delayMicroseconds(period_us);
     }
     idleMode(channel_index);
     return data;
@@ -275,6 +276,9 @@ class ADCBoard {
     commsController.transfer(0);
     digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
+    for (int i = 0; i < NUM_CHANNELS_PER_ADC_BOARD; i++) {
+      idleMode(i);
+    }
   }
 
   uint8_t talkADC(byte command) {

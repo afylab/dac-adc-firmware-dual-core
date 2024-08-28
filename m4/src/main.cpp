@@ -30,26 +30,6 @@ void setup() {
   // pinMode(24, OUTPUT);
 }
 
-// static char* stringToCharBuffer(String str) {
-//   char* buffer = new char[str.length() + 1];
-//   str.toCharArray(buffer, str.length() + 1);
-//   return buffer;
-// }
-
-// unsigned long times[10];
-int i = 0;
 void loop() {
   UserIOHandler::handleUserIO();
-
-  // for (int i = 0; i < 10; i++) {
-  //   times[i] = micros();
-  // }
-
-  // for (int i = 0; i < 9; i++) {
-  //   Serial.println(times[i + 1] - times[i]);
-  // }
-  // if (i % 10 == 0) {
-  //   digitalWrite(24, HIGH);
-  //   digitalWrite(24, LOW);
-  // }
 }
