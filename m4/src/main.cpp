@@ -10,7 +10,20 @@
 #include <vector>
 #include "UserIOHandler.h"
 
+#include "Utils/shared_memory.h"
+// #include "RPC.h"
+
+
 void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  // RPC.begin();
+  if (!initSharedMemory()) {
+    while (1) {
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(100);
+      digitalWrite(LED_BUILTIN, LOW);
+    }
+  }
   UserIOHandler::setup();
 
   PeripheralCommsController::setup();
@@ -27,9 +40,13 @@ void setup() {
   ADCController::setup();
 
   God::setup();
-  // pinMode(24, OUTPUT);
+  
 }
+
+
 
 void loop() {
   UserIOHandler::handleUserIO();
+  // m4SendData("Hello, World!");
+  // delay(1000);
 }

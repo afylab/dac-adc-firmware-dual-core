@@ -7,6 +7,8 @@
 #include "Config.h"
 #include "Utils/TimingUtil.h"
 
+#include "Utils/shared_memory.h"
+
 class God {
  public:
   static void setup() { initializeRegistry(); }
@@ -111,6 +113,9 @@ class God {
           for (int i = 0; i < numAdcChannels; i++) {
             dataMatrix[i][x] =
                 ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+                char* buffer = new char[10];
+                sprintf(buffer, "%f", static_cast<float>(dataMatrix[i][x]));
+                m4SendData(buffer);
           }
           x++;
         }
@@ -154,6 +159,7 @@ class God {
       }
       output += "\n";
     }
+    output.remove(output.length() - 1);
 
     for (int i = 0; i < numAdcChannels; i++) {
       delete[] dataMatrix[i];
@@ -165,7 +171,7 @@ class God {
     }
     delete[] voltSetpoints;
 
-    return OperationResult::Success(output);
+    return OperationResult::Success();
   }
 
   // args:
@@ -305,6 +311,7 @@ class God {
       }
       output += "\n";
     }
+    output.remove(output.length() - 1);
 
     for (int i = 0; i < numAdcChannels; i++) {
       delete[] dataMatrix[i];

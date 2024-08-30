@@ -18,7 +18,7 @@ class DACController {
   inline static std::vector<DACChannel> dac_channels;
 
  public:
-  static void initializeRegistry() {
+  inline static void initializeRegistry() {
     REGISTER_MEMBER_FUNCTION_0(initialize, "INITIALIZE");
     REGISTER_MEMBER_FUNCTION_0(initialize, "INIT");
     REGISTER_MEMBER_FUNCTION_0(
@@ -32,38 +32,38 @@ class DACController {
     REGISTER_MEMBER_FUNCTION_8(autoRamp2, "RAMP2");
   }
 
-  static void addChannel(int cs_pin) {
+  inline static void addChannel(int cs_pin) {
     DACChannel newChannel = DACChannel(cs_pin);
     dac_channels.push_back(newChannel);
   }
 
-  static OperationResult initialize() {
+  inline static OperationResult initialize() {
     for (auto channel : dac_channels) {
       channel.initialize();
     }
     return OperationResult::Success("INITIALIZATION COMPLETE");
   }
 
-  static void setup() {
+  inline static void setup() {
     initializeRegistry();
     for (auto channel : dac_channels) {
       channel.setup();
     }
   }
 
-  static DACChannel getChannel(int channel_index) {
+  inline static DACChannel getChannel(int channel_index) {
     if (!isChannelIndexValid(channel_index)) {
       return DACChannel(-1);
     }
     return dac_channels[channel_index];
   }
 
-  static bool isChannelIndexValid(int channelIndex) {
+  inline static bool isChannelIndexValid(int channelIndex) {
     return channelIndex >= 0 &&
            static_cast<size_t>(channelIndex) < dac_channels.size();
   }
 
-  static OperationResult setVoltage(int channel_index, float voltage) {
+  inline static OperationResult setVoltage(int channel_index, float voltage) {
     if (!isChannelIndexValid(channel_index)) {
       return OperationResult::Failure("Invalid channel index " +
                                       String(channel_index));
@@ -80,7 +80,7 @@ class DACController {
                                     " UPDATED TO " + String(v, 6) + " V");
   }
 
-  static void setVoltageNoTransaction(int channel_index, float voltage) {
+  inline static void setVoltageNoTransaction(int channel_index, float voltage) {
     if (!isChannelIndexValid(channel_index)) {
       return;
     }
@@ -93,12 +93,12 @@ class DACController {
     dac_channel.setVoltageNoTransaction(voltage);
   }
 
-  static void toggleLdac() {
+  inline static void toggleLdac() {
     digitalWrite(ldac, LOW);
     digitalWrite(ldac, HIGH);
   }
 
-  static OperationResult getVoltage(int channel_index) {
+  inline static OperationResult getVoltage(int channel_index) {
     if (!isChannelIndexValid(channel_index)) {
       return OperationResult::Failure("Invalid channel index " +
                                       String(channel_index));
@@ -106,7 +106,7 @@ class DACController {
     return OperationResult::Success(String(dac_channels[channel_index].getVoltage(), 6));
   }
 
-  static void setCalibration(int channel_index, float offset, float gain) {
+  inline static void setCalibration(int channel_index, float offset, float gain) {
     if (!isChannelIndexValid(channel_index)) {
       return;
     }
@@ -114,21 +114,21 @@ class DACController {
     dac_channels[channel_index].setCalibration(offset, gain);
   }
 
-  static float getLowerBound(int channel) {
+  inline static float getLowerBound(int channel) {
     if (!isChannelIndexValid(channel)) {
       return -1;
     }
     return dac_channels[channel].getLowerBound();
   }
 
-  static float getUpperBound(int channel) {
+  inline static float getUpperBound(int channel) {
     if (!isChannelIndexValid(channel)) {
       return -1;
     }
     return dac_channels[channel].getUpperBound();
   }
 
-  static OperationResult sendCode(int channel, int code) {
+  inline static OperationResult sendCode(int channel, int code) {
     if (!isChannelIndexValid(channel)) {
       return OperationResult::Failure("Invalid channel index " +
                                       String(channel));
@@ -141,7 +141,7 @@ class DACController {
                                     " CODE UPDATED TO " + String(code));
   }
 
-  static OperationResult setFullScale(int channel, float full_scale) {
+  inline static OperationResult setFullScale(int channel, float full_scale) {
     if (!isChannelIndexValid(channel)) {
       return OperationResult::Failure("Invalid channel index " +
                                       String(channel));
@@ -150,7 +150,7 @@ class DACController {
     return OperationResult::Success("FULL_SCALE_UPDATED");
   }
 
-  static OperationResult inquiryOSG() {
+  inline static OperationResult inquiryOSG() {
     String output = "";
     for (auto channel : dac_channels) {
       output += String(channel.getOffsetError(), 6) + "\n";
@@ -161,7 +161,7 @@ class DACController {
     return OperationResult::Success(output);
   }
 
-  static OperationResult autoRamp1(int dacChannel, float v0, float vf, int numSteps, u_long settlingTime_us) {
+  inline static OperationResult autoRamp1(int dacChannel, float v0, float vf, int numSteps, u_long settlingTime_us) {
     if (!isChannelIndexValid(dacChannel)) {
       return OperationResult::Failure("Invalid channel index " + String(dacChannel));
     }
@@ -192,7 +192,7 @@ class DACController {
     return OperationResult::Success("RAMPING DAC " + String(dacChannel) + " FROM " + String(v0) + " TO " + String(vf) + " IN " + String(numSteps) + " STEPS");
   }
 
-  static OperationResult autoRamp2(int dacChannel1, int dacChannel2, float vi1, float vi2, float vf1, float vf2, int numSteps, u_long settlingTime_us) {
+  inline static OperationResult autoRamp2(int dacChannel1, int dacChannel2, float vi1, float vi2, float vf1, float vf2, int numSteps, u_long settlingTime_us) {
     if (!isChannelIndexValid(dacChannel1) || !isChannelIndexValid(dacChannel2)) {
       return OperationResult::Failure("Invalid channel index " + String(dacChannel1) + " or " + String(dacChannel2));
     }

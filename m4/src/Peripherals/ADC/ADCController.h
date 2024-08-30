@@ -14,14 +14,14 @@ class ADCController {
   inline static std::vector<ADCBoard> adc_boards;
 
  public:
-  static OperationResult initialize() {
+  inline static OperationResult initialize() {
     // for (auto channel : adc_channels) {
     //   channel->initialize();
     // }
     return OperationResult::Success();
   }
 
-  static void setup() {
+  inline static void setup() {
     initializeRegistry();
     for (auto board : adc_boards) {
       board.setup();
@@ -43,12 +43,12 @@ class ADCController {
                                "ADC_CH_FULL_SC_CAL");
   }
 
-  static void addBoard(int data_sync_pin, int data_ready, int reset_pin) {
+  inline static void addBoard(int data_sync_pin, int data_ready, int reset_pin) {
     ADCBoard newBoard = ADCBoard(data_sync_pin, data_ready, reset_pin);
     adc_boards.push_back(newBoard);
   }
 
-  static bool isChannelIndexValid(int channelIndex) {
+  inline static bool isChannelIndexValid(int channelIndex) {
     return channelIndex >= 0 &&
            static_cast<size_t>(channelIndex) <
                adc_boards.size() * NUM_CHANNELS_PER_ADC_BOARD;
@@ -58,7 +58,7 @@ class ADCController {
 
   #define getChannelIndexFromGlobalIndex(channel_index) channel_index % NUM_CHANNELS_PER_ADC_BOARD
 
-  static OperationResult readChannelVoltage(int channel_index) {
+  inline static OperationResult readChannelVoltage(int channel_index) {
     if (isChannelIndexValid(channel_index)) {
       return OperationResult::Success(String(getVoltage(channel_index), 9));
     } else {
@@ -66,31 +66,31 @@ class ADCController {
     }
   }
 
-  static float getVoltage(int channel_index) {
+  inline static float getVoltage(int channel_index) {
     return adc_boards[getBoardIndexFromGlobalIndex(channel_index)].readVoltage(
         getChannelIndexFromGlobalIndex(channel_index));
   }
 
-  static uint32_t getConversionData(int adc_channel) {
+  inline static uint32_t getConversionData(int adc_channel) {
     return adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         .getConversionData(getChannelIndexFromGlobalIndex(adc_channel));
   }
 
-  static float getVoltageData(int adc_channel) {
+  inline static float getVoltageData(int adc_channel) {
     return ADC2DOUBLE(getConversionData(adc_channel));
   }
 
-   static float getVoltageDataNoTransaction(int adc_channel) {
+  inline static float getVoltageDataNoTransaction(int adc_channel) {
     return ADC2DOUBLE(adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         .getConversionDataNoTransaction(getChannelIndexFromGlobalIndex(adc_channel)));
   }
 
-  static void startContinuousConversion(int adc_channel) {
+  inline static void startContinuousConversion(int adc_channel) {
     adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
         .startContinuousConversion(getChannelIndexFromGlobalIndex(adc_channel));
   }
 
-  static OperationResult continuousConvertRead(int channel_index,
+  inline static OperationResult continuousConvertRead(int channel_index,
                                            uint32_t frequency_us,
                                            uint32_t duration_us) {
     if (!isChannelIndexValid(channel_index)) {
@@ -119,14 +119,14 @@ class ADCController {
     return OperationResult::Success(result);
   }
 
-  static OperationResult idleMode(int adc_channel) {
+  inline static OperationResult idleMode(int adc_channel) {
     adc_boards[getBoardIndexFromGlobalIndex(adc_channel)].idleMode(
         getChannelIndexFromGlobalIndex(adc_channel));
     return OperationResult::Success("Returned ADC " + String(adc_channel) +
                                     " to idle mode");
   }
 
-  static OperationResult getChannelsActive() {
+  inline static OperationResult getChannelsActive() {
     std::vector<int> statuses;
     for (auto board : adc_boards) {
       for (int i = 0; i < NUM_CHANNELS_PER_ADC_BOARD; i++) {
@@ -139,36 +139,23 @@ class ADCController {
     return OperationResult::Success(output == "" ? "NONE" : output);
   }
 
-  static String parseVector(std::vector<double> data) {
+  template <typename T>
+  inline static String parseVector(const std::vector<T>& data) {
     String result = "";
-    for (auto d : data) {
-      result += String(d, 9) + ",";
-    }
-    return result.substring(0, result.length() - 1);
-  }
-  static String parseVector(std::vector<bool> data) {
-    String result = "";
-    for (auto d : data) {
-      result += String(d) + ",";
-    }
-    return result.substring(0, result.length() - 1);
-  }
-  static String parseVector(std::vector<int> data) {
-    String result = "";
-    for (auto d : data) {
+    for (const auto& d : data) {
       result += String(d) + ",";
     }
     return result.substring(0, result.length() - 1);
   }
 
-  static OperationResult resetAllADCBoards() {
+  inline static OperationResult resetAllADCBoards() {
     for (auto board : adc_boards) {
       board.reset();
     }
     return OperationResult::Success();
   }
 
-  static OperationResult talkADC(byte command) {
+  inline static OperationResult talkADC(byte command) {
     String results = "";
     for (auto board : adc_boards) {
       results += String(board.talkADC(command), 9) + "\n";
@@ -176,14 +163,14 @@ class ADCController {
     return OperationResult::Success(results);
   }
 
-  static OperationResult adcZeroScaleCal() {
+  inline static OperationResult adcZeroScaleCal() {
     for (auto board : adc_boards) {
       board.zeroScaleSelfCalibration();
     }
     return OperationResult::Success("CALIBRATION_FINISHED");
   }
 
-  static OperationResult adcChannelSystemZeroScaleCal() {
+  inline static OperationResult adcChannelSystemZeroScaleCal() {
     for (auto board : adc_boards) {
       for (int i = 0; i < NUM_CHANNELS_PER_ADC_BOARD; i++) {
         board.zeroScaleChannelSystemSelfCalibration(i);
@@ -192,7 +179,7 @@ class ADCController {
     return OperationResult::Success("CALIBRATION_FINISHED");
   }
 
-  static OperationResult adcChannelSystemFullScaleCal() {
+  inline static OperationResult adcChannelSystemFullScaleCal() {
     for (auto board : adc_boards) {
       for (int i = 0; i < NUM_CHANNELS_PER_ADC_BOARD; i++) {
         board.fullScaleChannelSystemSelfCalibration(i);
@@ -202,6 +189,9 @@ class ADCController {
   }
 
   static OperationResult setConversionTime(int adc_channel, int time_us) {
+    if (!isChannelIndexValid(adc_channel)) {
+      return OperationResult::Failure("Invalid channel index");
+    }
     float setpoint =
         adc_boards[getBoardIndexFromGlobalIndex(adc_channel)].setConversionTime(
             getChannelIndexFromGlobalIndex(adc_channel), time_us);

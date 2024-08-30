@@ -7,29 +7,35 @@
 #include "FunctionRegistry.h"
 #include "Peripherals/OperationResult.h"
 
-#include "RPC.h"
+// #include "RPC.h"
 
 struct UserIOHandler {
-
   static void setup() {
-    RPC.begin();
+    // RPC.begin();
     REGISTER_MEMBER_FUNCTION_0(nop, "NOP");
     REGISTER_MEMBER_FUNCTION_0(id, "*IDN?");
     REGISTER_MEMBER_FUNCTION_0(rdy, "*RDY?");
     REGISTER_MEMBER_FUNCTION_0(serialNumber, "SERIAL_NUMBER");
-    
   }
 
-  static OperationResult nop() { return OperationResult::Success("NOP");}
-  static OperationResult id() { return OperationResult::Success("DAC-ADC_AD7734-AD5791");}
-  static OperationResult rdy() { return OperationResult::Success("READY");}
-  static OperationResult serialNumber() { return OperationResult::Success("DA20_16_08");}
-  
+  static OperationResult nop() { return OperationResult::Success("NOP"); }
+  static OperationResult id() {
+    return OperationResult::Success("DAC-ADC_AD7734-AD5791");
+  }
+  static OperationResult rdy() { return OperationResult::Success("READY"); }
+  static OperationResult serialNumber() {
+    return OperationResult::Success("DA20_16_08");
+  }
 
-  static std::vector<String> query_rpc() {
-    String input = RPC.readStringUntil('\n');
-    input.trim();
+  static std::vector<String> query_memory() {
     std::vector<String> comm;
+    if (!m4CheckForNewData()) {
+      return comm;
+    }
+    char buffer[MESSAGE_SIZE];
+    m4GetData(buffer);
+    String input = String(buffer);
+    input.trim();
     int startPos = 0;
     int commaPos = input.indexOf(',');
     while (commaPos != -1) {
@@ -38,6 +44,7 @@ struct UserIOHandler {
       commaPos = input.indexOf(',', startPos);
     }
     comm.push_back(input.substring(startPos));
+
     return comm;
   }
 
@@ -49,8 +56,8 @@ struct UserIOHandler {
 
   static void handleUserIO() {
     std::vector<String> comm;
-    if (RPC.available()) {
-      comm = query_rpc();
+    if (m4CheckForNewData()) {
+      comm = query_memory();
 
       if (comm.size() > 0) {
         String command = comm[0];
@@ -58,12 +65,13 @@ struct UserIOHandler {
 
         for (size_t i = 1; i < comm.size(); ++i) {
           if (!isValidFloat(comm[i])) {
-            RPC.println("Invalid arguments!");
+            m4SendData("Invalid arguments!");
             return;
           }
           args.push_back(comm[i].toFloat());
         }
-        OperationResult result = OperationResult::Failure("Something went wrong!");
+        OperationResult result =
+            OperationResult::Failure("Something went wrong!");
         FunctionRegistry::ExecuteResult executeResult =
             FunctionRegistry::execute(command, args, result);
 
@@ -71,19 +79,21 @@ struct UserIOHandler {
           case FunctionRegistry::ExecuteResult::Success:
             if (result.hasMessage()) {
               char* message = new char[result.getMessage().length() + 1];
-              result.getMessage().toCharArray(message, result.getMessage().length() + 1);
-              RPC.println(message);
+              result.getMessage().toCharArray(message,
+                                              result.getMessage().length() + 1);
+              m4SendData(message);
               delete[] message;
             }
             break;
           case FunctionRegistry::ExecuteResult::ArgumentError:
-            RPC.println("Error: Argument error");
+            m4SendData("Error: Argument error");
             break;
           case FunctionRegistry::ExecuteResult::FunctionNotFound:
-            RPC.println("Error: Function not found");
+            m4SendData("Error: Function not found");
             break;
         }
       }
+      // m4SendData(getDebugBuffer());
     }
   }
 };
