@@ -105,8 +105,8 @@ class God {
           }
         } else {
           for (int i = 0; i < numAdcChannels; i++) {
-                float thing = ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-                m4SendFloats(&thing, 1);
+                float v = ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+                m4SendFloats(&v, 1);
           }
           x++;
         }
@@ -209,12 +209,6 @@ class God {
     int steps = 0;
     int x = 0;
 
-    float** dataMatrix = new float*[numAdcChannels];
-
-    for (int i = 0; i < numAdcChannels; i++) {
-      dataMatrix[i] = new float[numSteps];
-    }
-
     float** voltSetpoints = new float*[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
@@ -240,8 +234,9 @@ class God {
           }
         } else {
           for (int i = 0; i < numAdcChannels; i++) {
-            dataMatrix[i][x] =
+            float v =
                 ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+            m4SendFloats(&v, 1);
           }
           x++;
         }
@@ -275,29 +270,12 @@ class God {
       ADCController::idleMode(adcChannels[i]);
     }
 
-    String output = "";
-
-    for (int i = 0; i < numAdcChannels; i++) {
-      output += "ADC Channel " + String(adcChannels[i]) + ":\n";
-      output += String(static_cast<float>(dataMatrix[i][0]), 9);
-      for (int j = 1; j < numSteps; j++) {
-        output += "\n" + String(static_cast<float>(dataMatrix[i][j]), 9);
-      }
-      output += "\n";
-    }
-    output.remove(output.length() - 1);
-
-    for (int i = 0; i < numAdcChannels; i++) {
-      delete[] dataMatrix[i];
-    }
-    delete[] dataMatrix;
-
     for (int i = 0; i < numDacChannels; i++) {
       delete[] voltSetpoints[i];
     }
     delete[] voltSetpoints;
 
-    return OperationResult::Success(output);
+    return OperationResult::Success();
   }
 
   static char* stringToCharBuffer(String str) {
