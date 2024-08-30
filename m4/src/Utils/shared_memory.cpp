@@ -67,7 +67,6 @@ void m4SendData(const char* data) {
   __DSB();
   m4ToM7Data->has_new_data = true;
   __DSB();
-  debugPrintMemory("M4 Send", (char*)m4ToM7Data->message, MESSAGE_SIZE);
 }
 
 bool m4CheckForNewData() {
@@ -81,7 +80,32 @@ void m4GetData(char* buffer) {
   __DSB();
   m7ToM4Data->has_new_data = false;
   __DSB();
-  debugPrintMemory("M4 Receive", buffer, MESSAGE_SIZE);
+}
+
+// M4 core functions for floats
+void m4SendFloats(const float* data, size_t count) {
+  if (count > MAX_FLOATS) count = MAX_FLOATS;
+  memcpy((void*)m4ToM7Data->float_data, data, count * sizeof(float));
+  __DSB();
+  m4ToM7Data->num_floats = count;  // Set the number of floats
+  m4ToM7Data->has_new_float_data = true;
+  __DSB();
+}
+
+bool m4CheckForNewFloats() {
+  __DSB();
+  return m7ToM4Data->has_new_float_data;
+}
+
+size_t m4GetFloats(float* buffer) {
+  size_t available_floats = m7ToM4Data->num_floats;
+  if (available_floats > MAX_FLOATS) available_floats = MAX_FLOATS;
+  memcpy(buffer, (const void*)m7ToM4Data->float_data,
+         available_floats * sizeof(float));
+  __DSB();
+  m7ToM4Data->has_new_float_data = false;
+  __DSB();
+  return available_floats;  // Set the number of floats received
 }
 
 // M7 core functions
@@ -91,7 +115,6 @@ void m7SendData(const char* data) {
   __DSB();
   m7ToM4Data->has_new_data = true;
   __DSB();
-  debugPrintMemory("M7 Send", (char*)m7ToM4Data->message, MESSAGE_SIZE);
 }
 
 bool m7CheckForNewData() {
@@ -105,5 +128,30 @@ void m7GetData(char* buffer) {
   __DSB();
   m4ToM7Data->has_new_data = false;
   __DSB();
-  debugPrintMemory("M7 Receive", buffer, MESSAGE_SIZE);
+}
+
+// M7 core functions for floats
+void m7SendFloats(const float* data, size_t count) {
+  if (count > MAX_FLOATS) count = MAX_FLOATS;
+  memcpy((void*)m7ToM4Data->float_data, data, count * sizeof(float));
+  __DSB();
+  m7ToM4Data->num_floats = count;  // Set the number of floats
+  m7ToM4Data->has_new_float_data = true;
+  __DSB();
+}
+
+bool m7CheckForNewFloats() {
+  __DSB();
+  return m4ToM7Data->has_new_float_data;
+}
+
+size_t m7GetFloats(float* buffer) {
+  size_t available_floats = m4ToM7Data->num_floats;
+  if (available_floats > MAX_FLOATS) available_floats = MAX_FLOATS;
+  memcpy(buffer, (const void*)m4ToM7Data->float_data,
+         available_floats * sizeof(float));
+  __DSB();
+  m4ToM7Data->has_new_float_data = false;
+  __DSB();
+  return available_floats;  // Set the number of floats received
 }

@@ -10,7 +10,6 @@
     if (ret != HAL_OK) return; \
   } while (0);
 
-
 void enableM4() {
   HAL_MPU_Disable();
 
@@ -61,21 +60,28 @@ void setup() {
 
   if (!initSharedMemory()) {
     while (1) {
-        Serial.println("Failed to initialize shared memory");
-        delay(1000);
+      Serial.println("Failed to initialize shared memory");
+      delay(1000);
     }
   }
 }
 
 void loop() {
-    if (Serial.available()) {
-        String command = Serial.readStringUntil('\n');
-        command.trim();
-        m7SendData(command.c_str());
+  if (Serial.available()) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    m7SendData(command.c_str());
+  }
+  if (m7CheckForNewData()) {
+    char response[MESSAGE_SIZE];
+    m7GetData(response);
+    Serial.println(response);
+  }
+  if (m7CheckForNewFloats()) {
+    float floats[MAX_FLOATS];
+    size_t count = m7GetFloats(floats);  // Retrieve the count of floats
+    for (size_t i = 0; i < count; i++) {
+      Serial.println(floats[i], 8);
     }
-    if (m7CheckForNewData()) {
-        char response[MESSAGE_SIZE];
-        m7GetData(response);
-        Serial.println(response);
-    }
+  }
 }

@@ -11,12 +11,10 @@
 #include "UserIOHandler.h"
 
 #include "Utils/shared_memory.h"
-// #include "RPC.h"
 
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
-  // RPC.begin();
   if (!initSharedMemory()) {
     while (1) {
       digitalWrite(LED_BUILTIN, HIGH);

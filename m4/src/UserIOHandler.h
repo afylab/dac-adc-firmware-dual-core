@@ -7,11 +7,9 @@
 #include "FunctionRegistry.h"
 #include "Peripherals/OperationResult.h"
 
-// #include "RPC.h"
 
 struct UserIOHandler {
   static void setup() {
-    // RPC.begin();
     REGISTER_MEMBER_FUNCTION_0(nop, "NOP");
     REGISTER_MEMBER_FUNCTION_0(id, "*IDN?");
     REGISTER_MEMBER_FUNCTION_0(rdy, "*RDY?");

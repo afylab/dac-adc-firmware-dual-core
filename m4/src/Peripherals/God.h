@@ -80,12 +80,6 @@ class God {
 
     const int saved_data_size = numSteps * dac_interval_us / adc_interval_us;
 
-    float** dataMatrix = new float*[numAdcChannels];
-
-    for (int i = 0; i < numAdcChannels; i++) {
-      dataMatrix[i] = new float[saved_data_size];
-    }
-
     float** voltSetpoints = new float*[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
@@ -111,11 +105,8 @@ class God {
           }
         } else {
           for (int i = 0; i < numAdcChannels; i++) {
-            dataMatrix[i][x] =
-                ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-                char* buffer = new char[10];
-                sprintf(buffer, "%f", static_cast<float>(dataMatrix[i][x]));
-                m4SendData(buffer);
+                float thing = ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+                m4SendFloats(&thing, 1);
           }
           x++;
         }
@@ -148,23 +139,6 @@ class God {
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::idleMode(adcChannels[i]);
     }
-
-    String output = "";
-
-    for (int i = 0; i < numAdcChannels; i++) {
-      output += "ADC Channel " + String(adcChannels[i]) + ":\n";
-      output += String(static_cast<float>(dataMatrix[i][0]), 9);
-      for (int j = 1; j < saved_data_size; j++) {
-        output += "\n" + String(static_cast<float>(dataMatrix[i][j]), 9);
-      }
-      output += "\n";
-    }
-    output.remove(output.length() - 1);
-
-    for (int i = 0; i < numAdcChannels; i++) {
-      delete[] dataMatrix[i];
-    }
-    delete[] dataMatrix;
 
     for (int i = 0; i < numDacChannels; i++) {
       delete[] voltSetpoints[i];
