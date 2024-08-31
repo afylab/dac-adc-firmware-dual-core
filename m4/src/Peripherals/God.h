@@ -23,7 +23,7 @@ class God {
   // args:
   // numDacChannels, numAdcChannels, numSteps, dacInterval_us, adcInterval_us,
   // dacchannel0, dacv00, dacvf0, dacchannel1, dacv01, dacvf1, ..., adc0, adc1,
-  // ...
+  // adc2, ...
   static OperationResult timeSeriesBufferRampWrapper(
       const std::vector<float>& args) {
     if (args.size() < 5) {
@@ -44,16 +44,16 @@ class God {
 
     // Allocate memory for DAC and ADC channel information
     int* dacChannels = new int[numDacChannels];
-    int* dacV0s = new int[numDacChannels];
-    int* dacVfs = new int[numDacChannels];
+    float* dacV0s = new float[numDacChannels];
+    float* dacVfs = new float[numDacChannels];
     int* adcChannels = new int[numAdcChannels];
 
     // Parse DAC channel information
     for (int i = 0; i < numDacChannels; ++i) {
       int baseIndex = 5 + i * 3;
       dacChannels[i] = static_cast<int>(args[baseIndex]);
-      dacV0s[i] = static_cast<int>(args[baseIndex + 1]);
-      dacVfs[i] = static_cast<int>(args[baseIndex + 2]);
+      dacV0s[i] = static_cast<float>(args[baseIndex + 1]);
+      dacVfs[i] = static_cast<float>(args[baseIndex + 2]);
     }
 
     // Parse ADC channel information
@@ -69,7 +69,7 @@ class God {
   static OperationResult timeSeriesBufferRampBase(
       int numDacChannels, int numAdcChannels, int numSteps,
       uint32_t dac_interval_us, uint32_t adc_interval_us, int* dacChannels,
-      int* dacV0s, int* dacVfs, int* adcChannels) {
+      float* dacV0s, float* dacVfs, int* adcChannels) {
     if (adc_interval_us < 1 || dac_interval_us < 1) {
       return OperationResult::Failure("Invalid interval");
     }
@@ -154,8 +154,7 @@ class God {
   // args:
   // numDacChannels, numAdcChannels, numSteps, dacInterval_us,
   // dacSettlingTime_us, dacchannel0, dacv00, dacvf0, dacchannel1, dacv01,
-  // dacvf1, ..., adc0, adc1,
-  // ...
+  // dacvf1, ..., adc0, adc1, adc2, ...
   static OperationResult dacLedBufferRampWrapper(
       const std::vector<float>& args) {
     if (args.size() < 5) {
@@ -176,16 +175,16 @@ class God {
 
     // Allocate memory for DAC and ADC channel information
     int* dacChannels = new int[numDacChannels];
-    int* dacV0s = new int[numDacChannels];
-    int* dacVfs = new int[numDacChannels];
+    float* dacV0s = new float[numDacChannels];
+    float* dacVfs = new float[numDacChannels];
     int* adcChannels = new int[numAdcChannels];
 
     // Parse DAC channel information
     for (int i = 0; i < numDacChannels; ++i) {
       int baseIndex = 5 + i * 3;
       dacChannels[i] = static_cast<int>(args[baseIndex]);
-      dacV0s[i] = static_cast<int>(args[baseIndex + 1]);
-      dacVfs[i] = static_cast<int>(args[baseIndex + 2]);
+      dacV0s[i] = static_cast<float>(args[baseIndex + 1]);
+      dacVfs[i] = static_cast<float>(args[baseIndex + 2]);
     }
 
     // Parse ADC channel information
@@ -202,8 +201,8 @@ class God {
                                               int numAdcChannels, int numSteps,
                                               uint32_t dac_interval_us,
                                               uint32_t dac_settling_time_us,
-                                              int* dacChannels, int* dacV0s,
-                                              int* dacVfs, int* adcChannels) {
+                                              int* dacChannels, float* dacV0s,
+                                              float* dacVfs, int* adcChannels) {
     if (dac_settling_time_us < 1 || dac_interval_us < 1 ||
         dac_settling_time_us >= dac_interval_us) {
       return OperationResult::Failure("Invalid interval or settling time");
@@ -282,12 +281,6 @@ class God {
     delete[] voltSetpoints;
 
     return OperationResult::Success();
-  }
-
-  static char* stringToCharBuffer(String str) {
-    char* buffer = new char[str.length() + 1];
-    str.toCharArray(buffer, str.length() + 1);
-    return buffer;
   }
 
   static OperationResult dacChannelCalibration() {
