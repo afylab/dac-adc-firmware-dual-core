@@ -7,6 +7,7 @@
 #include "Config.h"
 #include "Utils/TimingUtil.h"
 #include "Utils/shared_memory.h"
+#include "unordered_set"
 
 class God {
  public:
@@ -18,6 +19,129 @@ class God {
     REGISTER_MEMBER_FUNCTION_VECTOR(dacLedBufferRampWrapper,
                                     "DAC_LED_BUFFER_RAMP");
     REGISTER_MEMBER_FUNCTION_0(dacChannelCalibration, "DAC_CH_CAL");
+    REGISTER_MEMBER_FUNCTION_VECTOR(twoDimensionalFlexibleRampWrapper,
+                                    "2D_TIME_SERIES_RAMP");
+  }
+
+  struct AxisChannel {
+    int channel;
+    float v0;
+    float vf;
+  };
+
+  struct Axis {
+    std::vector<AxisChannel> channels;
+  };
+
+  // args:
+  // numDacChannels, numAdcChannels, numSteps_slow, numSteps_fast,
+  // dac_interval_us, adc_interval_us,
+  // slow_axis_num_channels, slow_ch1, slow_v01, slow_vf1, slow_ch2, slow_v02,
+  // slow_vf2, ..., fast_axis_num_channels, fast_ch1, fast_v01, fast_vf1,
+  // fast_ch2, fast_v02, fast_vf2, ..., adc0, adc1, adc2, ...
+  static OperationResult twoDimensionalFlexibleRampWrapper(
+      const std::vector<float>& args) {
+    if (args.size() < 8) {
+      return OperationResult::Failure("Not enough arguments provided");
+    }
+
+    int numDacChannels = static_cast<int>(args[0]);
+    int numAdcChannels = static_cast<int>(args[1]);
+    int numSteps_slow = static_cast<int>(args[2]);
+    int numSteps_fast = static_cast<int>(args[3]);
+    uint32_t dac_interval_us = static_cast<uint32_t>(args[4]);
+    uint32_t adc_interval_us = static_cast<uint32_t>(args[5]);
+
+    int slow_axis_num_channels = static_cast<int>(args[6]);
+
+    // Parse slow axis information
+    Axis slow_axis;
+    for (int i = 0; i < slow_axis_num_channels; ++i) {
+      int base_index = 7 + i * 3;
+      AxisChannel channel = {static_cast<int>(args[base_index]),
+                             args[base_index + 1], args[base_index + 2]};
+      slow_axis.channels.push_back(channel);
+    }
+
+    // Parse fast axis information
+    int fast_axis_start = 7 + slow_axis_num_channels * 3;
+    int fast_axis_num_channels = static_cast<int>(args[fast_axis_start]);
+    Axis fast_axis;
+    for (int i = 0; i < fast_axis_num_channels; ++i) {
+      int base_index = fast_axis_start + 1 + i * 3;
+      AxisChannel channel = {static_cast<int>(args[base_index]),
+                             args[base_index + 1], args[base_index + 2]};
+      fast_axis.channels.push_back(channel);
+    }
+
+    // Parse ADC channel information
+    std::vector<int> adcChannels(numAdcChannels);
+    int adc_start = fast_axis_start + 1 + fast_axis_num_channels * 3;
+    for (int i = 0; i < numAdcChannels; ++i) {
+      adcChannels[i] = static_cast<int>(args[adc_start + i]);
+    }
+
+    return twoDimensionalFlexibleRampBase(
+        numDacChannels, numAdcChannels, numSteps_slow, numSteps_fast,
+        dac_interval_us, adc_interval_us, slow_axis, fast_axis, adcChannels);
+  }
+
+  static OperationResult twoDimensionalFlexibleRampBase(
+      int numDacChannels, int numAdcChannels, int numSteps_slow,
+      int numSteps_fast, uint32_t dac_interval_us, uint32_t adc_interval_us,
+      const Axis& slow_axis, const Axis& fast_axis,
+      std::vector<int>& adcChannels) {
+    if (adc_interval_us < 1 || dac_interval_us < 1) {
+      return OperationResult::Failure("Invalid interval");
+    }
+
+    std::unordered_set<int> uniqueChannels;
+    std::vector<int> dacChannels;
+    std::vector<float> dacV0s(numDacChannels, 0.0f);
+    std::vector<float> dacVfs(numDacChannels, 0.0f);
+
+    // Collect unique DAC channels
+    for (const auto& ch : slow_axis.channels) {
+      if (uniqueChannels.insert(ch.channel).second) {
+        dacChannels.push_back(ch.channel);
+      }
+    }
+    for (const auto& ch : fast_axis.channels) {
+      if (uniqueChannels.insert(ch.channel).second) {
+        dacChannels.push_back(ch.channel);
+      }
+    }
+
+    for (int slow_step = 0; slow_step < numSteps_slow; ++slow_step) {
+      float slow_progress = static_cast<float>(slow_step) / (numSteps_slow - 1);
+
+      // Set voltages for slow axis channels
+      for (const auto& ch : slow_axis.channels) {
+        float voltage = ch.v0 + (ch.vf - ch.v0) * slow_progress;
+        dacV0s[ch.channel] = voltage;
+        dacVfs[ch.channel] = voltage;
+      }
+
+      // Set initial and final voltages for fast axis channels
+      for (const auto& ch : fast_axis.channels) {
+        dacV0s[ch.channel] = ch.v0;
+        dacVfs[ch.channel] = ch.vf;
+      }
+
+      // print the slow axis
+      char buffer[100];
+      sprintf(buffer, "Slow axis step %d/%d", slow_step, numSteps_slow);
+      m4SendChar(buffer, strlen(buffer));
+
+      // Call the 1D ramp for the fast axis
+      OperationResult result = timeSeriesBufferRampBase(
+          dacChannels.size(), numAdcChannels, numSteps_fast, dac_interval_us,
+          adc_interval_us, dacChannels.data(), dacV0s.data(), dacVfs.data(),
+          adcChannels.data());
+    }
+
+    return OperationResult::Success(
+        "2D Flexible Axis Ramp completed successfully");
   }
 
   // args:
