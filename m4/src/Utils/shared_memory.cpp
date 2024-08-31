@@ -2,156 +2,260 @@
 
 #include <SDRAM.h>
 
-// Define the shared memory regions in SDRAM
 #define SDRAM_START_ADDRESS 0x38000000
-#define M4_TO_M7_ADDRESS (SDRAM_START_ADDRESS)
-#define M7_TO_M4_ADDRESS (SDRAM_START_ADDRESS + sizeof(SharedData))
 
-volatile SharedData* m4ToM7Data = nullptr;
-volatile SharedData* m7ToM4Data = nullptr;
-
-char debugBuffer[DEBUG_BUFFER_SIZE];
-int debugBufferIndex = 0;
+SharedMemory* shared_memory = nullptr;
 
 bool initSharedMemory() {
-  if (!SDRAM.begin(SDRAM_START_ADDRESS)) {
-    return false;
-  }
+  SDRAM.begin(SDRAM_START_ADDRESS);
+  shared_memory = reinterpret_cast<SharedMemory*>(SDRAM_START_ADDRESS);
 
-  m4ToM7Data = (SharedData*)M4_TO_M7_ADDRESS;
-  m7ToM4Data = (SharedData*)M7_TO_M4_ADDRESS;
-
-  memset((void*)m4ToM7Data, 0, sizeof(SharedData));
-  memset((void*)m7ToM4Data, 0, sizeof(SharedData));
+  shared_memory->m4_to_m7_char_buffer.read_index = 0;
+  shared_memory->m4_to_m7_char_buffer.write_index = 0;
+  shared_memory->m7_to_m4_char_buffer.read_index = 0;
+  shared_memory->m7_to_m4_char_buffer.write_index = 0;
+  shared_memory->m4_to_m7_float_buffer.read_index = 0;
+  shared_memory->m4_to_m7_float_buffer.write_index = 0;
+  shared_memory->m7_to_m4_float_buffer.read_index = 0;
+  shared_memory->m7_to_m4_float_buffer.write_index = 0;
+  shared_memory->m4_to_m7_voltage_buffer.read_index = 0;
+  shared_memory->m4_to_m7_voltage_buffer.write_index = 0;
+  shared_memory->m7_to_m4_voltage_buffer.read_index = 0;
+  shared_memory->m7_to_m4_voltage_buffer.write_index = 0;
 
   return true;
 }
 
-void debugPrintMemory(const char* label, const char* data, size_t size) {
-  int remainingSpace = DEBUG_BUFFER_SIZE - debugBufferIndex;
-  int bytesToWrite =
-      snprintf(debugBuffer + debugBufferIndex, remainingSpace, "%s: '", label);
-  debugBufferIndex += bytesToWrite;
-  remainingSpace -= bytesToWrite;
+// Char buffer operations
+static bool charBufferSend(CharCircularBuffer* buffer, const char* data,
+                           size_t length) {
+  if (length > MAX_MESSAGE_SIZE) return false;
 
-  for (size_t i = 0; i < size && i < MESSAGE_SIZE && remainingSpace > 3; i++) {
-    if (data[i] == '\0') {
-      bytesToWrite =
-          snprintf(debugBuffer + debugBufferIndex, remainingSpace, "\\0");
-    } else {
-      bytesToWrite = snprintf(debugBuffer + debugBufferIndex, remainingSpace,
-                              "%c", data[i]);
-    }
-    debugBufferIndex += bytesToWrite;
-    remainingSpace -= bytesToWrite;
+  uint32_t available_space =
+      (buffer->read_index - buffer->write_index - 1 + CHAR_BUFFER_SIZE) %
+      CHAR_BUFFER_SIZE;
+  if (length + sizeof(uint32_t) > available_space) return false;
+
+  uint32_t write_index = buffer->write_index;
+  *reinterpret_cast<uint32_t*>(&buffer->buffer[write_index]) = length;
+  write_index = (write_index + sizeof(uint32_t)) % CHAR_BUFFER_SIZE;
+
+  for (size_t i = 0; i < length; ++i) {
+    buffer->buffer[write_index] = data[i];
+    write_index = (write_index + 1) % CHAR_BUFFER_SIZE;
   }
 
-  if (remainingSpace > 2) {
-    bytesToWrite =
-        snprintf(debugBuffer + debugBufferIndex, remainingSpace, "'\n");
-    debugBufferIndex += bytesToWrite;
+  buffer->write_index = write_index;
+  return true;
+}
+
+static bool charBufferReceive(CharCircularBuffer* buffer, char* data,
+                              size_t& length) {
+  if (buffer->read_index == buffer->write_index) {
+    length = 0;
+    return false;
   }
+
+  uint32_t read_index = buffer->read_index;
+  uint32_t msg_length =
+      *reinterpret_cast<uint32_t*>(&buffer->buffer[read_index]);
+  read_index = (read_index + sizeof(uint32_t)) % CHAR_BUFFER_SIZE;
+
+  if (msg_length > length) {
+    length = msg_length;
+    return false;
+  }
+
+  for (size_t i = 0; i < msg_length; ++i) {
+    data[i] = buffer->buffer[read_index];
+    read_index = (read_index + 1) % CHAR_BUFFER_SIZE;
+  }
+
+  length = msg_length;
+  buffer->read_index = read_index;
+  return true;
 }
 
-const char* getDebugBuffer() { return debugBuffer; }
-
-void clearDebugBuffer() {
-  memset(debugBuffer, 0, DEBUG_BUFFER_SIZE);
-  debugBufferIndex = 0;
+static bool charBufferHasMessage(CharCircularBuffer* buffer) {
+  return buffer->read_index != buffer->write_index;
 }
 
-// M4 core functions
-void m4SendData(const char* data) {
-  strncpy((char*)m4ToM7Data->message, data, MESSAGE_SIZE - 1);
-  m4ToM7Data->message[MESSAGE_SIZE - 1] = '\0';
-  __DSB();
-  m4ToM7Data->has_new_data = true;
-  __DSB();
+// Float buffer operations
+static bool floatBufferSend(FloatCircularBuffer* buffer, const float* data,
+                            size_t length) {
+  if (length > MAX_MESSAGE_SIZE) return false;
+
+  uint32_t available_space =
+      (buffer->read_index - buffer->write_index - 1 + FLOAT_BUFFER_SIZE) %
+      FLOAT_BUFFER_SIZE;
+  if (length + 1 > available_space) return false;
+
+  uint32_t write_index = buffer->write_index;
+  buffer->buffer[write_index] = length;
+  write_index = (write_index + 1) % FLOAT_BUFFER_SIZE;
+
+  for (size_t i = 0; i < length; ++i) {
+    buffer->buffer[write_index] = data[i];
+    write_index = (write_index + 1) % FLOAT_BUFFER_SIZE;
+  }
+
+  buffer->write_index = write_index;
+  return true;
 }
 
-bool m4CheckForNewData() {
-  __DSB();
-  return m7ToM4Data->has_new_data;
+static bool floatBufferReceive(FloatCircularBuffer* buffer, float* data,
+                               size_t& length) {
+  if (buffer->read_index == buffer->write_index) {
+    length = 0;
+    return false;
+  }
+
+  uint32_t read_index = buffer->read_index;
+  uint32_t msg_length = static_cast<uint32_t>(buffer->buffer[read_index]);
+  read_index = (read_index + 1) % FLOAT_BUFFER_SIZE;
+
+  if (msg_length > length) {
+    length = msg_length;
+    return false;
+  }
+
+  for (size_t i = 0; i < msg_length; ++i) {
+    data[i] = buffer->buffer[read_index];
+    read_index = (read_index + 1) % FLOAT_BUFFER_SIZE;
+  }
+
+  length = msg_length;
+  buffer->read_index = read_index;
+  return true;
 }
 
-void m4GetData(char* buffer) {
-  strncpy(buffer, (const char*)m7ToM4Data->message, MESSAGE_SIZE - 1);
-  buffer[MESSAGE_SIZE - 1] = '\0';
-  __DSB();
-  m7ToM4Data->has_new_data = false;
-  __DSB();
+static bool floatBufferHasMessage(FloatCircularBuffer* buffer) {
+  return buffer->read_index != buffer->write_index;
 }
 
-// M4 core functions for floats
-void m4SendFloats(const float* data, size_t count) {
-  if (count > MAX_FLOATS) count = MAX_FLOATS;
-  memcpy((void*)m4ToM7Data->float_data, data, count * sizeof(float));
-  __DSB();
-  m4ToM7Data->num_floats = count;  // Set the number of floats
-  m4ToM7Data->has_new_float_data = true;
-  __DSB();
+// Voltage buffer operations
+static bool voltageBufferSend(VoltageCircularBuffer* buffer,
+                              const VoltagePacket* data, size_t length) {
+  if (length > MAX_MESSAGE_SIZE) return false;
+
+  uint32_t available_space =
+      (buffer->read_index - buffer->write_index - 1 + VOLTAGE_BUFFER_SIZE) %
+      VOLTAGE_BUFFER_SIZE;
+  if (length > available_space) return false;
+
+  for (size_t i = 0; i < length; ++i) {
+    buffer->buffer[buffer->write_index] = data[i];
+    buffer->write_index = (buffer->write_index + 1) % VOLTAGE_BUFFER_SIZE;
+  }
+
+  return true;
 }
 
-bool m4CheckForNewFloats() {
-  __DSB();
-  return m7ToM4Data->has_new_float_data;
+static bool voltageBufferReceive(VoltageCircularBuffer* buffer,
+                                 VoltagePacket* data, size_t& length) {
+  if (buffer->read_index == buffer->write_index) {
+    length = 0;
+    return false;
+  }
+
+  size_t available =
+      (buffer->write_index - buffer->read_index + VOLTAGE_BUFFER_SIZE) %
+      VOLTAGE_BUFFER_SIZE;
+  size_t to_read = (length < available) ? length : available;
+
+  for (size_t i = 0; i < to_read; ++i) {
+    data[i] = buffer->buffer[buffer->read_index];
+    buffer->read_index = (buffer->read_index + 1) % VOLTAGE_BUFFER_SIZE;
+  }
+
+  length = to_read;
+  return true;
 }
 
-size_t m4GetFloats(float* buffer) {
-  size_t available_floats = m7ToM4Data->num_floats;
-  if (available_floats > MAX_FLOATS) available_floats = MAX_FLOATS;
-  memcpy(buffer, (const void*)m7ToM4Data->float_data,
-         available_floats * sizeof(float));
-  __DSB();
-  m7ToM4Data->has_new_float_data = false;
-  __DSB();
-  return available_floats;  // Set the number of floats received
+static bool voltageBufferHasMessage(VoltageCircularBuffer* buffer) {
+  return buffer->read_index != buffer->write_index;
 }
 
-// M7 core functions
-void m7SendData(const char* data) {
-  strncpy((char*)m7ToM4Data->message, data, MESSAGE_SIZE - 1);
-  m7ToM4Data->message[MESSAGE_SIZE - 1] = '\0';
-  __DSB();
-  m7ToM4Data->has_new_data = true;
-  __DSB();
+// M4 char functions
+bool m4SendChar(const char* data, size_t length) {
+  return charBufferSend(&shared_memory->m4_to_m7_char_buffer, data, length);
 }
 
-bool m7CheckForNewData() {
-  __DSB();
-  return m4ToM7Data->has_new_data;
+bool m4ReceiveChar(char* data, size_t& length) {
+  return charBufferReceive(&shared_memory->m7_to_m4_char_buffer, data, length);
 }
 
-void m7GetData(char* buffer) {
-  strncpy(buffer, (const char*)m4ToM7Data->message, MESSAGE_SIZE - 1);
-  buffer[MESSAGE_SIZE - 1] = '\0';
-  __DSB();
-  m4ToM7Data->has_new_data = false;
-  __DSB();
+bool m4HasCharMessage() {
+  return charBufferHasMessage(&shared_memory->m7_to_m4_char_buffer);
 }
 
-// M7 core functions for floats
-void m7SendFloats(const float* data, size_t count) {
-  if (count > MAX_FLOATS) count = MAX_FLOATS;
-  memcpy((void*)m7ToM4Data->float_data, data, count * sizeof(float));
-  __DSB();
-  m7ToM4Data->num_floats = count;  // Set the number of floats
-  m7ToM4Data->has_new_float_data = true;
-  __DSB();
+// M4 float functions
+bool m4SendFloat(const float* data, size_t length) {
+  return floatBufferSend(&shared_memory->m4_to_m7_float_buffer, data, length);
 }
 
-bool m7CheckForNewFloats() {
-  __DSB();
-  return m4ToM7Data->has_new_float_data;
+bool m4ReceiveFloat(float* data, size_t& length) {
+  return floatBufferReceive(&shared_memory->m7_to_m4_float_buffer, data,
+                            length);
 }
 
-size_t m7GetFloats(float* buffer) {
-  size_t available_floats = m4ToM7Data->num_floats;
-  if (available_floats > MAX_FLOATS) available_floats = MAX_FLOATS;
-  memcpy(buffer, (const void*)m4ToM7Data->float_data,
-         available_floats * sizeof(float));
-  __DSB();
-  m4ToM7Data->has_new_float_data = false;
-  __DSB();
-  return available_floats;  // Set the number of floats received
+bool m4HasFloatMessage() {
+  return floatBufferHasMessage(&shared_memory->m7_to_m4_float_buffer);
+}
+
+// M4 voltage functions
+bool m4SendVoltage(const VoltagePacket* data, size_t length) {
+  return voltageBufferSend(&shared_memory->m4_to_m7_voltage_buffer, data,
+                           length);
+}
+
+bool m4ReceiveVoltage(VoltagePacket* data, size_t& length) {
+  return voltageBufferReceive(&shared_memory->m7_to_m4_voltage_buffer, data,
+                              length);
+}
+
+bool m4HasVoltageMessage() {
+  return voltageBufferHasMessage(&shared_memory->m7_to_m4_voltage_buffer);
+}
+
+// M7 char functions
+bool m7SendChar(const char* data, size_t length) {
+  return charBufferSend(&shared_memory->m7_to_m4_char_buffer, data, length);
+}
+
+bool m7ReceiveChar(char* data, size_t& length) {
+  return charBufferReceive(&shared_memory->m4_to_m7_char_buffer, data, length);
+}
+
+bool m7HasCharMessage() {
+  return charBufferHasMessage(&shared_memory->m4_to_m7_char_buffer);
+}
+
+// M7 float functions
+bool m7SendFloat(const float* data, size_t length) {
+  return floatBufferSend(&shared_memory->m7_to_m4_float_buffer, data, length);
+}
+
+bool m7ReceiveFloat(float* data, size_t& length) {
+  return floatBufferReceive(&shared_memory->m4_to_m7_float_buffer, data,
+                            length);
+}
+
+bool m7HasFloatMessage() {
+  return floatBufferHasMessage(&shared_memory->m4_to_m7_float_buffer);
+}
+
+// M7 voltage functions
+bool m7SendVoltage(const VoltagePacket* data, size_t length) {
+  return voltageBufferSend(&shared_memory->m7_to_m4_voltage_buffer, data,
+                           length);
+}
+
+bool m7ReceiveVoltage(VoltagePacket* data, size_t& length) {
+  return voltageBufferReceive(&shared_memory->m4_to_m7_voltage_buffer, data,
+                              length);
+}
+
+bool m7HasVoltageMessage() {
+  return voltageBufferHasMessage(&shared_memory->m4_to_m7_voltage_buffer);
 }

@@ -7,7 +7,6 @@
 #include "FunctionRegistry.h"
 #include "Peripherals/OperationResult.h"
 
-
 struct UserIOHandler {
   static void setup() {
     REGISTER_MEMBER_FUNCTION_0(nop, "NOP");
@@ -27,13 +26,19 @@ struct UserIOHandler {
 
   static std::vector<String> query_memory() {
     std::vector<String> comm;
-    if (!m4CheckForNewData()) {
+    if (!m4HasCharMessage()) {
       return comm;
     }
-    char buffer[MESSAGE_SIZE];
-    m4GetData(buffer);
-    String input = String(buffer);
+
+    char buffer[CHAR_BUFFER_SIZE];
+    size_t size;
+    if (!m4ReceiveChar(buffer, size)) {
+      return comm;  // Return empty vector if we couldn't get the data
+    }
+
+    String input = String(buffer, size);  // Create String with exact size
     input.trim();
+
     int startPos = 0;
     int commaPos = input.indexOf(',');
     while (commaPos != -1) {
@@ -54,7 +59,7 @@ struct UserIOHandler {
 
   static void handleUserIO() {
     std::vector<String> comm;
-    if (m4CheckForNewData()) {
+    if (m4HasCharMessage()) {
       comm = query_memory();
 
       if (comm.size() > 0) {
@@ -63,7 +68,7 @@ struct UserIOHandler {
 
         for (size_t i = 1; i < comm.size(); ++i) {
           if (!isValidFloat(comm[i])) {
-            m4SendData("Invalid arguments!");
+            m4SendChar("Invalid arguments!", 19);
             return;
           }
           args.push_back(comm[i].toFloat());
@@ -76,18 +81,19 @@ struct UserIOHandler {
         switch (executeResult) {
           case FunctionRegistry::ExecuteResult::Success:
             if (result.hasMessage()) {
-              char* message = new char[result.getMessage().length() + 1];
+              size_t messageSize = result.getMessage().length() + 1;
+              char* message = new char[messageSize];
               result.getMessage().toCharArray(message,
-                                              result.getMessage().length() + 1);
-              m4SendData(message);
+                                              messageSize);
+              m4SendChar(message, messageSize);
               delete[] message;
             }
             break;
           case FunctionRegistry::ExecuteResult::ArgumentError:
-            m4SendData("Error: Argument error");
+            m4SendChar("Error: Argument error", 22);
             break;
           case FunctionRegistry::ExecuteResult::FunctionNotFound:
-            m4SendData("Error: Function not found");
+            m4SendChar("Error: Function not found", 26);
             break;
         }
       }

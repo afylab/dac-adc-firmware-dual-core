@@ -358,16 +358,16 @@ class ADCBoard {
     byte out;
     if (chop) {
       if (moreThanOneChannelActive) {
-        out = static_cast<byte>((time_us * 6.144 - 249.0) / 128.0);
+        out = static_cast<byte>(round((time_us * 6.144 - 249.0) / 128.0));
       } else {
-        out = static_cast<byte>((time_us * 6.144 - 248.0) / 128.0);
+        out = static_cast<byte>(round((time_us * 6.144 - 248.0) / 128.0));
       }
       if (out < 2) return 2;
     } else {
       if (moreThanOneChannelActive) {
-        out = static_cast<byte>((time_us * 6.144 - 206.0) / 64.0);
+        out = static_cast<byte>(round((time_us * 6.144 - 206.0) / 64.0));
       } else {
-        out = static_cast<byte>((time_us * 6.144 - 207.0) / 64.0);
+        out = static_cast<byte>(round((time_us * 6.144 - 207.0) / 64.0));
       }
       if (out < 3) return 3;
     }

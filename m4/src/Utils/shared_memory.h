@@ -1,41 +1,74 @@
 #pragma once
 #include <Arduino.h>
 
-#define MESSAGE_SIZE 256
-#define DEBUG_BUFFER_SIZE 1024
-#define MAX_FLOATS 16
+#define CHAR_BUFFER_SIZE 1024
+#define FLOAT_BUFFER_SIZE 256
+#define VOLTAGE_BUFFER_SIZE 512
+#define MAX_MESSAGE_SIZE 256
 
-// Define the structures for shared data
-struct SharedData {
-  char message[MESSAGE_SIZE];
-  volatile bool has_new_data;
-  float float_data[MAX_FLOATS];
-  volatile bool has_new_float_data;
-  volatile size_t num_floats;
+struct CharCircularBuffer {
+  char buffer[CHAR_BUFFER_SIZE];
+  volatile uint32_t read_index;
+  volatile uint32_t write_index;
 };
 
-// Initialize shared memory
+struct FloatCircularBuffer {
+  float buffer[FLOAT_BUFFER_SIZE];
+  volatile uint32_t read_index;
+  volatile uint32_t write_index;
+};
+
+struct VoltagePacket {
+  uint8_t adc_id;
+  uint32_t setnum;
+  float voltage;
+};
+
+struct VoltageCircularBuffer {
+  VoltagePacket buffer[VOLTAGE_BUFFER_SIZE];
+  volatile uint32_t read_index;
+  volatile uint32_t write_index;
+};
+
+struct SharedMemory {
+  CharCircularBuffer m4_to_m7_char_buffer;
+  CharCircularBuffer m7_to_m4_char_buffer;
+  FloatCircularBuffer m4_to_m7_float_buffer;
+  FloatCircularBuffer m7_to_m4_float_buffer;
+  VoltageCircularBuffer m4_to_m7_voltage_buffer;
+  VoltageCircularBuffer m7_to_m4_voltage_buffer;
+};
+
+extern SharedMemory* shared_memory;
+
 bool initSharedMemory();
 
-// M4 core functions
-void m4SendData(const char* data);
-bool m4CheckForNewData();
-void m4GetData(char* buffer);
+// M4 char functions
+bool m4SendChar(const char* data, size_t length);
+bool m4ReceiveChar(char* data, size_t& length);
+bool m4HasCharMessage();
 
-void m4SendFloats(const float* data, size_t count);
-bool m4CheckForNewFloats();
-size_t m4GetFloats(float* buffer);
+// M4 float functions
+bool m4SendFloat(const float* data, size_t length);
+bool m4ReceiveFloat(float* data, size_t& length);
+bool m4HasFloatMessage();
 
-// M7 core functions
-void m7SendData(const char* data);
-bool m7CheckForNewData();
-void m7GetData(char* buffer);
+// M4 voltage functions
+bool m4SendVoltage(const VoltagePacket* data, size_t length);
+bool m4ReceiveVoltage(VoltagePacket* data, size_t& length);
+bool m4HasVoltageMessage();
 
-void m7SendFloats(const float* data, size_t count);
-bool m7CheckForNewFloats();
-size_t m7GetFloats(float* buffer);
+// M7 char functions
+bool m7SendChar(const char* data, size_t length);
+bool m7ReceiveChar(char* data, size_t& length);
+bool m7HasCharMessage();
 
-// Debug functions
-void debugPrintMemory(const char* label, const char* data, size_t size);
-const char* getDebugBuffer();
-void clearDebugBuffer();
+// M7 float functions
+bool m7SendFloat(const float* data, size_t length);
+bool m7ReceiveFloat(float* data, size_t& length);
+bool m7HasFloatMessage();
+
+// M7 voltage functions
+bool m7SendVoltage(const VoltagePacket* data, size_t length);
+bool m7ReceiveVoltage(VoltagePacket* data, size_t& length);
+bool m7HasVoltageMessage();

@@ -6,7 +6,6 @@
 
 #include "Config.h"
 #include "Utils/TimingUtil.h"
-
 #include "Utils/shared_memory.h"
 
 class God {
@@ -104,10 +103,14 @@ class God {
             ADCController::getVoltageDataNoTransaction(adcChannels[i]);
           }
         } else {
+          VoltagePacket* packets = new VoltagePacket[numAdcChannels];
           for (int i = 0; i < numAdcChannels; i++) {
-                float v = ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-                m4SendFloats(&v, 1);
+            float v =
+                ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+            packets[i] = {static_cast<uint8_t>(adcChannels[i]),
+                          static_cast<uint32_t>(x), v};
           }
+          m4SendVoltage(packets, numAdcChannels);
           x++;
         }
         ADCBoard::commsController.endTransaction();
@@ -118,12 +121,12 @@ class God {
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransaction(dacChannels[i],
-             voltSetpoints[i][0]);
+                                                   voltSetpoints[i][0]);
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransaction(dacChannels[i],
-             voltSetpoints[i][steps-1]);
+                                                   voltSetpoints[i][steps - 1]);
           }
         }
         DACController::toggleLdac();
@@ -233,11 +236,14 @@ class God {
             ADCController::getVoltageDataNoTransaction(adcChannels[i]);
           }
         } else {
+          VoltagePacket* packets = new VoltagePacket[numAdcChannels];
           for (int i = 0; i < numAdcChannels; i++) {
             float v =
                 ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-            m4SendFloats(&v, 1);
+            packets[i] = {static_cast<uint8_t>(adcChannels[i]),
+                          static_cast<uint32_t>(x), v};
           }
+          m4SendVoltage(packets, numAdcChannels);
           x++;
         }
         ADCBoard::commsController.endTransaction();

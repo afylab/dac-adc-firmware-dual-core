@@ -1,7 +1,4 @@
 #include <Arduino.h>
-
-// #include "RPC.h"
-
 #include "Utils/shared_memory.h"
 
 #define return_if_not_ok(x)    \
@@ -70,18 +67,40 @@ void loop() {
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
     command.trim();
-    m7SendData(command.c_str());
+    m7SendChar(command.c_str(), command.length());
   }
-  if (m7CheckForNewData()) {
-    char response[MESSAGE_SIZE];
-    m7GetData(response);
-    Serial.println(response);
+  if (m7HasCharMessage()) {
+    char response[CHAR_BUFFER_SIZE];
+    size_t size;
+    if (m7ReceiveChar(response, size)) {
+      Serial.write(response, size);
+      Serial.println();
+    }
   }
-  if (m7CheckForNewFloats()) {
-    float floats[MAX_FLOATS];
-    size_t count = m7GetFloats(floats);  // Retrieve the count of floats
-    for (size_t i = 0; i < count; i++) {
-      Serial.println(floats[i], 8);
+  if (m7HasFloatMessage()) {
+    float response[FLOAT_BUFFER_SIZE];
+    size_t size;
+    if (m7ReceiveFloat(response, size)) {
+      for (size_t i = 0; i < size; ++i) {
+        Serial.print(response[i], 8);
+        Serial.print(" ");
+      }
+      Serial.println();
+    }
+  }
+  if (m7HasVoltageMessage()) {
+    VoltagePacket response[VOLTAGE_BUFFER_SIZE];
+    size_t size;
+    if (m7ReceiveVoltage(response, size)) {
+      for (size_t i = 0; i < size; ++i) {
+        Serial.print("ADC ID: ");
+        Serial.print(response[i].adc_id);
+        Serial.print(", Setnum: ");
+        Serial.print(response[i].setnum);
+        Serial.print(", ");
+        Serial.print(response[i].voltage, 8);
+        Serial.println("V");
+      }
     }
   }
 }
