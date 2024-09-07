@@ -128,17 +128,16 @@ class DACChannel {
   }
 
   float getVoltage() {
+    byte bytesToSend[3] = {144, 0, 0};
     commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    SPI.transfer(144);
-    SPI.transfer(0);
-    SPI.transfer(0);
+    commsController.transfer(bytesToSend, 3);
     digitalWrite(cs_pin, HIGH);
     delayMicroseconds(2);
     digitalWrite(cs_pin, LOW);
-    byte b1 = SPI.transfer(0);
-    byte b2 = SPI.transfer(0);
-    byte b3 = SPI.transfer(0);
+    byte b1 = commsController.receiveByte();
+    byte b2 = commsController.receiveByte();
+    byte b3 = commsController.receiveByte();
     digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
 

@@ -90,7 +90,7 @@ class God {
         "%d\nnumSteps_fast: %d\ndac_interval_us: %d\nadc_interval_us: "
         "%d\nslow_axis_num_channels: %d\n",
         numDacChannels, numAdcChannels, retrace, numSteps_slow, numSteps_fast,
-        dac_interval_us, adc_interval_us, slow_axis_num_channels);
+        static_cast<int>(dac_interval_us), static_cast<int>(adc_interval_us), slow_axis_num_channels);
     m4SendChar(buffer, strlen(buffer));
     for (int i = 0; i < slow_axis_num_channels; ++i) {
       int base_index = 8 + i * 3;
@@ -158,12 +158,14 @@ class God {
       sprintf(buffer, "Slow axis step %d/%d, Direction: %s", slow_step,
               numSteps_slow, forward ? "Forward" : "Reverse");
       m4SendChar(buffer, strlen(buffer));
+      delayMicroseconds(1000);
       // print all data you set for debugging
       for (int i = 0; i < numDacChannels; ++i) {
         sprintf(buffer, "DAC channel %d: v0: %f, vf: %f\n", dacChannels[i],
                 dacV0s[i], dacVfs[i]);
         m4SendChar(buffer, strlen(buffer));
       }
+      delayMicroseconds(1000);
 
       // Call the 1D ramp for the fast axis
       OperationResult result = timeSeriesBufferRampBase(
