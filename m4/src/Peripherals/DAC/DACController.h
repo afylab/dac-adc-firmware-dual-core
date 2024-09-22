@@ -165,6 +165,11 @@ class DACController {
     if (!isChannelIndexValid(dacChannel)) {
       return OperationResult::Failure("Invalid channel index " + String(dacChannel));
     }
+
+    if (v0 < dac_channels[dacChannel].getLowerBound() || v0 > dac_channels[dacChannel].getUpperBound() ||
+        vf < dac_channels[dacChannel].getLowerBound() || vf > dac_channels[dacChannel].getUpperBound()) {
+      return OperationResult::Failure("VOLTAGE_OVERRANGE");
+    }
     
     float *voltSetpoints = new float[numSteps];
 

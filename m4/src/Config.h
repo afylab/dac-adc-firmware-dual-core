@@ -7,7 +7,7 @@
 //  physical GPIO to software data names                     //
 ///////////////////////////////////////////////////////////////
 
-const int adc_cs_pins[2] = {48, 42}; // SYNC for both 16-bit ADCs
+const int adc_cs_pins[2] = {48, 42}; // SYNC for both 24-bit ADCs
 const int dac_cs_pins[4] = {24, 26, 38, 36}; // CS for 4x 20-bit DAC channels
 const int ldac = 22; // LDAC pin shared across all AD5791 -- used to synchronize DAC voltage output
 const int reset[2] = {46, 44}; // reset pins on ADC

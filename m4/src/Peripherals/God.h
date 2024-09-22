@@ -90,7 +90,8 @@ class God {
         "%d\nnumSteps_fast: %d\ndac_interval_us: %d\nadc_interval_us: "
         "%d\nslow_axis_num_channels: %d\n",
         numDacChannels, numAdcChannels, retrace, numSteps_slow, numSteps_fast,
-        static_cast<int>(dac_interval_us), static_cast<int>(adc_interval_us), slow_axis_num_channels);
+        static_cast<int>(dac_interval_us), static_cast<int>(adc_interval_us),
+        slow_axis_num_channels);
     m4SendChar(buffer, strlen(buffer));
     for (int i = 0; i < slow_axis_num_channels; ++i) {
       int base_index = 8 + i * 3;
@@ -98,6 +99,7 @@ class God {
               static_cast<int>(args[base_index]), args[base_index + 1],
               args[base_index + 2]);
       m4SendChar(buffer, strlen(buffer));
+      delete[] buffer;
     }
 
     return twoDimensionalFlexibleRampBase(
@@ -164,6 +166,7 @@ class God {
         sprintf(buffer, "DAC channel %d: v0: %f, vf: %f\n", dacChannels[i],
                 dacV0s[i], dacVfs[i]);
         m4SendChar(buffer, strlen(buffer));
+        delete[] buffer;
       }
       delayMicroseconds(1000);
 
@@ -275,6 +278,7 @@ class God {
                           static_cast<uint32_t>(x), v};
           }
           m4SendVoltage(packets, numAdcChannels);
+          delete[] packets;
           x++;
         }
         ADCBoard::commsController.endTransaction();
@@ -316,24 +320,25 @@ class God {
   }
 
   // args:
-  // numDacChannels, numAdcChannels, numSteps, dacInterval_us,
+  // numDacChannels, numAdcChannels, numSteps, numAdcAverages, dacInterval_us,
   // dacSettlingTime_us, dacchannel0, dacv00, dacvf0, dacchannel1, dacv01,
   // dacvf1, ..., adc0, adc1, adc2, ...
   static OperationResult dacLedBufferRampWrapper(
       const std::vector<float>& args) {
-    if (args.size() < 5) {
+    if (args.size() < 10) {
       return OperationResult::Failure("Not enough arguments provided");
     }
 
     int numDacChannels = static_cast<int>(args[0]);
     int numAdcChannels = static_cast<int>(args[1]);
     int numSteps = static_cast<int>(args[2]);
-    uint32_t dac_interval_us = static_cast<uint32_t>(args[3]);
-    uint32_t dac_settling_time_us = static_cast<uint32_t>(args[4]);
+    int numAdcAverages = static_cast<int>(args[3]);
+    uint32_t dac_interval_us = static_cast<uint32_t>(args[4]);
+    uint32_t dac_settling_time_us = static_cast<uint32_t>(args[5]);
 
     // Check if we have enough arguments for all DAC and ADC channels
     if (args.size() !=
-        static_cast<size_t>(5 + numDacChannels * 3 + numAdcChannels)) {
+        static_cast<size_t>(6 + numDacChannels * 3 + numAdcChannels)) {
       return OperationResult::Failure("Incorrect number of arguments");
     }
 
@@ -345,7 +350,7 @@ class God {
 
     // Parse DAC channel information
     for (int i = 0; i < numDacChannels; ++i) {
-      int baseIndex = 5 + i * 3;
+      int baseIndex = 6 + i * 3;
       dacChannels[i] = static_cast<int>(args[baseIndex]);
       dacV0s[i] = static_cast<float>(args[baseIndex + 1]);
       dacVfs[i] = static_cast<float>(args[baseIndex + 2]);
@@ -353,20 +358,19 @@ class God {
 
     // Parse ADC channel information
     for (int i = 0; i < numAdcChannels; ++i) {
-      adcChannels[i] = static_cast<int>(args[5 + numDacChannels * 3 + i]);
+      adcChannels[i] = static_cast<int>(args[6 + numDacChannels * 3 + i]);
     }
 
     return dacLedBufferRampBase(numDacChannels, numAdcChannels, numSteps,
-                                dac_interval_us, dac_settling_time_us,
-                                dacChannels, dacV0s, dacVfs, adcChannels);
+                                numAdcAverages, dac_interval_us,
+                                dac_settling_time_us, dacChannels, dacV0s,
+                                dacVfs, adcChannels);
   }
 
-  static OperationResult dacLedBufferRampBase(int numDacChannels,
-                                              int numAdcChannels, int numSteps,
-                                              uint32_t dac_interval_us,
-                                              uint32_t dac_settling_time_us,
-                                              int* dacChannels, float* dacV0s,
-                                              float* dacVfs, int* adcChannels) {
+  static OperationResult dacLedBufferRampBase(
+      int numDacChannels, int numAdcChannels, int numSteps, int numAdcAverages,
+      uint32_t dac_interval_us, uint32_t dac_settling_time_us, int* dacChannels,
+      float* dacV0s, float* dacVfs, int* adcChannels) {
     if (dac_settling_time_us < 1 || dac_interval_us < 1 ||
         dac_settling_time_us >= dac_interval_us) {
       return OperationResult::Failure("Invalid interval or settling time");
@@ -396,17 +400,23 @@ class God {
         ADCBoard::commsController.beginTransaction();
         if (steps <= 1) {
           for (int i = 0; i < numAdcChannels; i++) {
-            ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+            for (int j = 0; j < numAdcAverages; j++) {
+              ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+            }
           }
         } else {
           VoltagePacket* packets = new VoltagePacket[numAdcChannels];
           for (int i = 0; i < numAdcChannels; i++) {
-            float v =
-                ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+            float total = 0.0;
+            for (int j = 0; j < numAdcAverages; j++) {
+              total += ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+            }
+            float v = total / numAdcAverages;
             packets[i] = {static_cast<uint8_t>(adcChannels[i]),
                           static_cast<uint32_t>(x), v};
           }
           m4SendVoltage(packets, numAdcChannels);
+          delete[] packets;
           x++;
         }
         ADCBoard::commsController.endTransaction();
