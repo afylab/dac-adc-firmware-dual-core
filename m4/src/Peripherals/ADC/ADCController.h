@@ -31,7 +31,9 @@ class ADCController {
   static void initializeRegistry() {
     REGISTER_MEMBER_FUNCTION_1(readChannelVoltage, "GET_ADC");
     REGISTER_MEMBER_FUNCTION_2(setConversionTime, "CONVERT_TIME");
-    REGISTER_MEMBER_FUNCTION_3(continuousConvertRead, "CONTINUOUS_CONVERT_READ");
+    REGISTER_MEMBER_FUNCTION_1(getConversionTime, "GET_CONVERT_TIME");
+    REGISTER_MEMBER_FUNCTION_3(continuousConvertRead,
+                               "CONTINUOUS_CONVERT_READ");
     REGISTER_MEMBER_FUNCTION_1(idleMode, "IDLE_MODE");
     REGISTER_MEMBER_FUNCTION_0(getChannelsActive, "GET_CHANNELS_ACTIVE");
     REGISTER_MEMBER_FUNCTION_0(resetAllADCBoards, "RESET");
@@ -43,7 +45,8 @@ class ADCController {
                                "ADC_CH_FULL_SC_CAL");
   }
 
-  inline static void addBoard(int data_sync_pin, int data_ready, int reset_pin) {
+  inline static void addBoard(int data_sync_pin, int data_ready,
+                              int reset_pin) {
     ADCBoard newBoard = ADCBoard(data_sync_pin, data_ready, reset_pin);
     adc_boards.push_back(newBoard);
   }
@@ -54,9 +57,11 @@ class ADCController {
                adc_boards.size() * NUM_CHANNELS_PER_ADC_BOARD;
   }
 
-  #define getBoardIndexFromGlobalIndex(channel_index) channel_index / NUM_CHANNELS_PER_ADC_BOARD
+#define getBoardIndexFromGlobalIndex(channel_index) \
+  channel_index / NUM_CHANNELS_PER_ADC_BOARD
 
-  #define getChannelIndexFromGlobalIndex(channel_index) channel_index % NUM_CHANNELS_PER_ADC_BOARD
+#define getChannelIndexFromGlobalIndex(channel_index) \
+  channel_index % NUM_CHANNELS_PER_ADC_BOARD
 
   inline static OperationResult readChannelVoltage(int channel_index) {
     if (isChannelIndexValid(channel_index)) {
@@ -82,7 +87,8 @@ class ADCController {
 
   inline static float getVoltageDataNoTransaction(int adc_channel) {
     return ADC2DOUBLE(adc_boards[getBoardIndexFromGlobalIndex(adc_channel)]
-        .getConversionDataNoTransaction(getChannelIndexFromGlobalIndex(adc_channel)));
+                          .getConversionDataNoTransaction(
+                              getChannelIndexFromGlobalIndex(adc_channel)));
   }
 
   inline static void startContinuousConversion(int adc_channel) {
@@ -91,8 +97,8 @@ class ADCController {
   }
 
   inline static OperationResult continuousConvertRead(int channel_index,
-                                           uint32_t frequency_us,
-                                           uint32_t duration_us) {
+                                                      uint32_t frequency_us,
+                                                      uint32_t duration_us) {
     if (!isChannelIndexValid(channel_index)) {
       return OperationResult::Failure("Invalid channel index");
     }
@@ -200,5 +206,23 @@ class ADCController {
           "The filter word you selected is not valid.");
     }
     return OperationResult::Success(String(setpoint, 9));
+  }
+
+  static float getConversionTimeFloat(int adc_channel) {
+    if (!isChannelIndexValid(adc_channel)) {
+      return -1.0;
+    }
+    return adc_boards[getBoardIndexFromGlobalIndex(adc_channel)].getConversionTime(
+        getChannelIndexFromGlobalIndex(adc_channel));
+  }
+
+  static OperationResult getConversionTime(int adc_channel) {
+    if (!isChannelIndexValid(adc_channel)) {
+      return OperationResult::Failure("Invalid channel index");
+    }
+    float convert_time =
+        adc_boards[getBoardIndexFromGlobalIndex(adc_channel)].getConversionTime(
+            getChannelIndexFromGlobalIndex(adc_channel));
+    return OperationResult::Success(String(convert_time, 9));
   }
 };

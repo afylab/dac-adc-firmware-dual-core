@@ -176,12 +176,12 @@ class ADCBoard {
   void setConversionTime(int adc_channel, int chop, int fw) {
     byte chop_byte = chop == 1 ? 0x80 : 0x00;
     byte send = chop_byte | static_cast<byte>(fw);
-    digitalWrite(cs_pin, LOW);
     commsController.beginTransaction();
+    digitalWrite(cs_pin, LOW);
     commsController.transfer(WRITE | ADDR_CHANNELCONVERSIONTIME(adc_channel));
     commsController.transfer(send);
-    commsController.endTransaction();
     digitalWrite(cs_pin, HIGH);
+    commsController.endTransaction();
   }
 
   uint32_t getConversionData(int adc_channel) {
@@ -319,6 +319,10 @@ class ADCBoard {
     // could've done the calculation with user-given values but it's good to
     // check
     return getConversionTime(channel, moreThanOneChannelActive);
+  }
+
+  float getConversionTime(int channel) {
+    return getConversionTime(channel, isMoreThanOneChannelActive());
   }
 
   float getConversionTime(int channel, bool moreThanOneChannelActive) {

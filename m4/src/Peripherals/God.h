@@ -375,6 +375,20 @@ class God {
         dac_settling_time_us >= dac_interval_us) {
       return OperationResult::Failure("Invalid interval or settling time");
     }
+    if (numAdcAverages < 1) {
+      return OperationResult::Failure("Invalid number of ADC averages");
+    }
+    if (numSteps < 1) {
+      return OperationResult::Failure("Invalid number of steps");
+    }
+    if (numDacChannels < 1 || numAdcChannels < 1) {
+      return OperationResult::Failure("Invalid number of channels");
+    }
+    for (int i = 0; i < numAdcChannels; i++) {
+      if (dac_settling_time_us < ADCController::getConversionTimeFloat(adcChannels[i])) {
+        return OperationResult::Failure("DAC settling time too short for ADC conversion time");
+      }
+    }
 
     int steps = 0;
     int x = 0;
