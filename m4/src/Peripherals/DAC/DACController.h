@@ -10,8 +10,8 @@
 #include "FunctionRegistry.h"
 #include "FunctionRegistryMacros.h"
 #include "Peripherals/OperationResult.h"
-
 #include "Utils/TimingUtil.h"
+#include "Utils/shared_memory.h"
 
 class DACController {
  private:
@@ -74,7 +74,7 @@ class DACController {
       return OperationResult::Failure("Voltage out of bounds for DAC " +
                                       String(channel_index));
     }
-    
+
     float v = dac_channel.setVoltage(voltage);
     return OperationResult::Success("DAC " + String(channel_index) +
                                     " UPDATED TO " + String(v, 6) + " V");
@@ -89,7 +89,7 @@ class DACController {
         voltage > dac_channel.getUpperBound()) {
       return;
     }
-    
+
     dac_channel.setVoltageNoTransaction(voltage);
   }
 
@@ -103,10 +103,12 @@ class DACController {
       return OperationResult::Failure("Invalid channel index " +
                                       String(channel_index));
     }
-    return OperationResult::Success(String(dac_channels[channel_index].getVoltage(), 6));
+    return OperationResult::Success(
+        String(dac_channels[channel_index].getVoltage(), 6));
   }
 
-  inline static void setCalibration(int channel_index, float offset, float gain) {
+  inline static void setCalibration(int channel_index, float offset,
+                                    float gain) {
     if (!isChannelIndexValid(channel_index)) {
       return;
     }
@@ -161,16 +163,21 @@ class DACController {
     return OperationResult::Success(output);
   }
 
-  inline static OperationResult autoRamp1(int dacChannel, float v0, float vf, int numSteps, u_long settlingTime_us) {
+  inline static OperationResult autoRamp1(int dacChannel, float v0, float vf,
+                                          int numSteps,
+                                          u_long settlingTime_us) {
     if (!isChannelIndexValid(dacChannel)) {
-      return OperationResult::Failure("Invalid channel index " + String(dacChannel));
+      return OperationResult::Failure("Invalid channel index " +
+                                      String(dacChannel));
     }
 
-    if (v0 < dac_channels[dacChannel].getLowerBound() || v0 > dac_channels[dacChannel].getUpperBound() ||
-        vf < dac_channels[dacChannel].getLowerBound() || vf > dac_channels[dacChannel].getUpperBound()) {
+    if (v0 < dac_channels[dacChannel].getLowerBound() ||
+        v0 > dac_channels[dacChannel].getUpperBound() ||
+        vf < dac_channels[dacChannel].getLowerBound() ||
+        vf > dac_channels[dacChannel].getUpperBound()) {
       return OperationResult::Failure("VOLTAGE_OVERRANGE");
     }
-    
+
     float *voltSetpoints = new float[numSteps];
 
     for (int i = 0; i < numSteps; i++) {
@@ -182,6 +189,9 @@ class DACController {
     TimingUtil::setupTimerOnlyDac(settlingTime_us);
 
     while (i < numSteps) {
+      if (getStopFlag()) {
+        break;
+      }
       if (TimingUtil::dacFlag) {
         dac_channels[dacChannel].setVoltage(voltSetpoints[i]);
         i++;
@@ -193,18 +203,34 @@ class DACController {
 
     delete[] voltSetpoints;
 
+    if (getStopFlag()) {
+      setStopFlag(false);
+      return OperationResult::Failure("RAMPING_STOPPED");
+    }
 
-    return OperationResult::Success("RAMPING DAC " + String(dacChannel) + " FROM " + String(v0) + " TO " + String(vf) + " IN " + String(numSteps) + " STEPS");
+    return OperationResult::Success(
+        "RAMPING DAC " + String(dacChannel) + " FROM " + String(v0) + " TO " +
+        String(vf) + " IN " + String(numSteps) + " STEPS");
   }
 
-  inline static OperationResult autoRamp2(int dacChannel1, int dacChannel2, float vi1, float vi2, float vf1, float vf2, int numSteps, u_long settlingTime_us) {
-    if (!isChannelIndexValid(dacChannel1) || !isChannelIndexValid(dacChannel2)) {
-      return OperationResult::Failure("Invalid channel index " + String(dacChannel1) + " or " + String(dacChannel2));
+  inline static OperationResult autoRamp2(int dacChannel1, int dacChannel2,
+                                          float vi1, float vi2, float vf1,
+                                          float vf2, int numSteps,
+                                          u_long settlingTime_us) {
+    if (!isChannelIndexValid(dacChannel1) ||
+        !isChannelIndexValid(dacChannel2)) {
+      return OperationResult::Failure("Invalid channel index " +
+                                      String(dacChannel1) + " or " +
+                                      String(dacChannel2));
     }
-    if (vi1 < dac_channels[dacChannel1].getLowerBound() || vi1 > dac_channels[dacChannel1].getUpperBound() ||
-        vi2 < dac_channels[dacChannel2].getLowerBound() || vi2 > dac_channels[dacChannel2].getUpperBound() ||
-        vf1 < dac_channels[dacChannel1].getLowerBound() || vf1 > dac_channels[dacChannel1].getUpperBound() ||
-        vf2 < dac_channels[dacChannel2].getLowerBound() || vf2 > dac_channels[dacChannel2].getUpperBound()) {
+    if (vi1 < dac_channels[dacChannel1].getLowerBound() ||
+        vi1 > dac_channels[dacChannel1].getUpperBound() ||
+        vi2 < dac_channels[dacChannel2].getLowerBound() ||
+        vi2 > dac_channels[dacChannel2].getUpperBound() ||
+        vf1 < dac_channels[dacChannel1].getLowerBound() ||
+        vf1 > dac_channels[dacChannel1].getUpperBound() ||
+        vf2 < dac_channels[dacChannel2].getLowerBound() ||
+        vf2 > dac_channels[dacChannel2].getUpperBound()) {
       return OperationResult::Failure("VOLTAGE_OVERRANGE");
     }
 
@@ -221,6 +247,9 @@ class DACController {
     TimingUtil::setupTimerOnlyDac(settlingTime_us);
 
     while (i < numSteps) {
+      if (getStopFlag()) {
+        break;
+      }
       if (TimingUtil::dacFlag) {
         dac_channels[dacChannel1].setVoltage(voltSetpoints1[i]);
         dac_channels[dacChannel2].setVoltage(voltSetpoints2[i]);
@@ -234,6 +263,15 @@ class DACController {
     delete[] voltSetpoints1;
     delete[] voltSetpoints2;
 
-    return OperationResult::Success("RAMPING DAC " + String(dacChannel1) + " FROM " + String(vi1) + " TO " + String(vf1) + " AND DAC " + String(dacChannel2) + " FROM " + String(vi2) + " TO " + String(vf2) + " IN " + String(numSteps) + " STEPS");
+    if (getStopFlag()) {
+      setStopFlag(false);
+      return OperationResult::Failure("RAMPING_STOPPED");
+    }
+
+    return OperationResult::Success(
+        "RAMPING DAC " + String(dacChannel1) + " FROM " + String(vi1) + " TO " +
+        String(vf1) + " AND DAC " + String(dacChannel2) + " FROM " +
+        String(vi2) + " TO " + String(vf2) + " IN " + String(numSteps) +
+        " STEPS");
   }
 };

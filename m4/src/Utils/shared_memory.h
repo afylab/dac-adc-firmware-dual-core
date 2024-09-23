@@ -37,6 +37,8 @@ struct SharedMemory {
   FloatCircularBuffer m7_to_m4_float_buffer;
   VoltageCircularBuffer m4_to_m7_voltage_buffer;
   VoltageCircularBuffer m7_to_m4_voltage_buffer;
+
+  volatile bool stop_flag;
 };
 
 extern SharedMemory* shared_memory;
@@ -72,3 +74,6 @@ bool m7HasFloatMessage();
 bool m7SendVoltage(const VoltagePacket* data, size_t length);
 bool m7ReceiveVoltage(VoltagePacket* data, size_t& length);
 bool m7HasVoltageMessage();
+
+void setStopFlag(bool value);
+bool getStopFlag();

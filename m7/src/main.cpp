@@ -1,4 +1,5 @@
 #include <Arduino.h>
+
 #include "Utils/shared_memory.h"
 
 #define return_if_not_ok(x)    \
@@ -67,7 +68,13 @@ void loop() {
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
     command.trim();
-    m7SendChar(command.c_str(), command.length());
+    String command_lower = command;
+    command_lower.toLowerCase();
+    if (command_lower == "stop") {
+      setStopFlag(true);
+    } else {
+      m7SendChar(command.c_str(), command.length());
+    }
   }
   if (m7HasCharMessage()) {
     char response[CHAR_BUFFER_SIZE];

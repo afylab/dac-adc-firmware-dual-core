@@ -16,9 +16,10 @@ const int led = 7; // indicator LED
 const int data = 6; // data indicator LED
 const int err = 11; // error indicator LED
 
+const int SPI_SPEED = 4000000; // SPI speed for both ADC and DAC
 
-const static SPISettings DAC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE3);
-const static SPISettings ADC_SPI_SETTINGS(4000000, MSBFIRST, SPI_MODE3);
+const static SPISettings DAC_SPI_SETTINGS(SPI_SPEED, MSBFIRST, SPI_MODE3);
+const static SPISettings ADC_SPI_SETTINGS(SPI_SPEED, MSBFIRST, SPI_MODE3);
 
 #define NUM_CHANNELS_PER_DAC_BOARD 4
 #define NUM_CHANNELS_PER_ADC_BOARD 4

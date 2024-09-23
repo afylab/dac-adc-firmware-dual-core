@@ -23,8 +23,14 @@ bool initSharedMemory() {
   shared_memory->m7_to_m4_voltage_buffer.read_index = 0;
   shared_memory->m7_to_m4_voltage_buffer.write_index = 0;
 
+  shared_memory->stop_flag = false;
+
   return true;
 }
+
+void setStopFlag(bool value) { shared_memory->stop_flag = value; }
+
+bool getStopFlag() { return shared_memory->stop_flag; }
 
 // Char buffer operations
 static bool charBufferSend(CharCircularBuffer* buffer, const char* data,
