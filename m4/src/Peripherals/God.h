@@ -19,11 +19,10 @@ class God {
     registerMemberFunctionVector(dacLedBufferRampWrapper,
                                  "DAC_LED_BUFFER_RAMP");
     registerMemberFunction(dacChannelCalibration, "DAC_CH_CAL");
-    registerMemberFunctionVector(timeSeriesBufferRamp2D,
-                                 "2D_TIME_SERIES");
+    registerMemberFunctionVector(timeSeriesBufferRamp2D, "2D_TIME_SERIES");
   }
 
-  // timeSeries2DBufferRampWrapper:
+  // timeSeriesBufferRamp2D:
   // Arguments (in order):
   // numDacChannels, numAdcChannels, numStepsFast, numStepsSlow,
   // dacInterval_us, adcInterval_us, retrace (0.0f = false, 1.0f = true),
@@ -152,7 +151,7 @@ class God {
       ADCController::startContinuousConversion(adcChannels[i]);
     }
 
-    // Iterate over slow steps
+    // Iterate over slow steps with optional retrace
     for (int slowStep = 0; slowStep < numStepsSlow && !getStopFlag();
          ++slowStep) {
       // Set slow DAC channels to the current slow step voltages
@@ -164,13 +163,38 @@ class God {
       DACController::toggleLdac();
       DACChannel::commsController.endTransaction();
 
-      // Call the base ramp function for fast channels (forward ramp)
-      OperationResult resultForward = timeSeriesBufferRampBaseNoConversionSetup(
+      // Determine ramp direction based on retrace flag
+      bool isReverse = false;
+      if (retrace) {
+        isReverse = (slowStep % 2 != 0);  // Reverse on odd slow steps
+      }
+
+      // Prepare ramp voltages
+      float* currentV0s = fastDacV0s;
+      float* currentVfs = fastDacVfs;
+      if (isReverse) {
+        // Swap V0 and Vf for reverse ramp
+        currentV0s = new float[numFastDacChannels];
+        currentVfs = new float[numFastDacChannels];
+        for (int i = 0; i < numFastDacChannels; ++i) {
+          currentV0s[i] = fastDacVfs[i];
+          currentVfs[i] = fastDacV0s[i];
+        }
+      }
+
+      // Call the base ramp function for fast channels
+      OperationResult rampResult = timeSeriesBufferRampBaseNoConversionSetup(
           numFastDacChannels, numAdcChannels, numStepsFast, dac_interval_us,
-          adc_interval_us, fastDacChannels, fastDacV0s, fastDacVfs,
+          adc_interval_us, fastDacChannels, currentV0s, currentVfs,
           adcChannels);
 
-      if (!resultForward.isSuccess()) {
+      // If reverse ramp was performed, clean up the temporary arrays
+      if (isReverse) {
+        delete[] currentV0s;
+        delete[] currentVfs;
+      }
+
+      if (!rampResult.isSuccess()) {
         // Clean up allocated memory before returning
         for (int i = 0; i < numSlowDacChannels; ++i) {
           delete[] slowVoltSetpoints[i];
@@ -183,44 +207,7 @@ class God {
         delete[] slowDacV0s;
         delete[] slowDacVfs;
         delete[] adcChannels;
-        return resultForward;  // Return the failure reason
-      }
-
-      // If retrace is enabled, perform the reverse ramp to return to V0
-      if (retrace) {
-        // Create temporary arrays with V0 and Vf swapped for reverse ramp
-        float* reverseV0s = new float[numFastDacChannels];
-        float* reverseVfs = new float[numFastDacChannels];
-        for (int i = 0; i < numFastDacChannels; ++i) {
-          reverseV0s[i] = fastDacVfs[i];
-          reverseVfs[i] = fastDacV0s[i];
-        }
-
-        // Call the base ramp function for fast channels (reverse ramp)
-        OperationResult resultReverse = timeSeriesBufferRampBaseNoConversionSetup(
-            numFastDacChannels, numAdcChannels, numStepsFast, dac_interval_us,
-            adc_interval_us, fastDacChannels, reverseV0s, reverseVfs,
-            adcChannels);
-
-        // Clean up temporary reverse voltage arrays
-        delete[] reverseV0s;
-        delete[] reverseVfs;
-
-        if (!resultReverse.isSuccess()) {
-          // Clean up allocated memory before returning
-          for (int i = 0; i < numSlowDacChannels; ++i) {
-            delete[] slowVoltSetpoints[i];
-          }
-          delete[] slowVoltSetpoints;
-          delete[] fastDacChannels;
-          delete[] fastDacV0s;
-          delete[] fastDacVfs;
-          delete[] slowDacChannels;
-          delete[] slowDacV0s;
-          delete[] slowDacVfs;
-          delete[] adcChannels;
-          return resultReverse;  // Return the failure reason
-        }
+        return rampResult;  // Return the failure reason
       }
     }
 
