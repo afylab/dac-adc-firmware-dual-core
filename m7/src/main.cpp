@@ -2,13 +2,16 @@
 
 #include "Utils/shared_memory.h"
 
-#define return_if_not_ok(x)    \
-  do {                         \
-    int ret = x;               \
-    if (ret != HAL_OK) return; \
+#define return_if_not_ok(x) \
+  do                        \
+  {                         \
+    int ret = x;            \
+    if (ret != HAL_OK)      \
+      return;               \
   } while (0);
 
-void enableM4() {
+void enableM4()
+{
   HAL_MPU_Disable();
 
   // Disable caching for the shared memory region.
@@ -33,7 +36,8 @@ void enableM4() {
 
   OBInit.Banks = FLASH_BANK_1;
   HAL_FLASHEx_OBGetConfig(&OBInit);
-  if (OBInit.USERConfig & FLASH_OPTSR_BCM4) {
+  if (OBInit.USERConfig & FLASH_OPTSR_BCM4)
+  {
     OBInit.OptionType = OPTIONBYTE_USER;
     OBInit.USERType = OB_USER_BCM4;
     OBInit.USERConfig = 0;
@@ -53,60 +57,89 @@ void enableM4() {
   LL_RCC_ForceCM4Boot();
 }
 
-void setup() {
+
+typedef union {
+  float floatingPoint;
+  byte binary[4];
+} binaryFloat;
+
+void setup()
+{
   enableM4();
 
-  if (!initSharedMemory()) {
-    while (1) {
+  if (!initSharedMemory())
+  {
+    while (1)
+    {
       Serial.println("Failed to initialize shared memory");
       delay(1000);
     }
   }
 }
 
-void loop() {
-  if (Serial.available()) {
+void loop()
+{
+  if (Serial.available())
+  {
     String command = Serial.readStringUntil('\n');
     command.trim();
     String command_lower = command;
     command_lower.toLowerCase();
-    if (command_lower == "stop") {
+    if (command_lower == "stop")
+    {
       setStopFlag(true);
-    } else {
+    }
+    else
+    {
       m7SendChar(command.c_str(), command.length());
     }
   }
-  if (m7HasCharMessage()) {
+  if (m7HasCharMessage())
+  {
     char response[CHAR_BUFFER_SIZE];
     size_t size;
-    if (m7ReceiveChar(response, size)) {
+    if (m7ReceiveChar(response, size))
+    {
+      if (size > 0)
+      {
+        size--; // Decrease size to exclude the last character
+      }
       Serial.write(response, size);
       Serial.println();
     }
   }
-  if (m7HasFloatMessage()) {
+  if (m7HasFloatMessage())
+  {
     float response[FLOAT_BUFFER_SIZE];
     size_t size;
-    if (m7ReceiveFloat(response, size)) {
-      for (size_t i = 0; i < size; ++i) {
+    if (m7ReceiveFloat(response, size))
+    {
+      for (size_t i = 0; i < size; ++i)
+      {
         Serial.print(response[i], 8);
         Serial.print(" ");
       }
       Serial.println();
     }
   }
-  if (m7HasVoltageMessage()) {
+  if (m7HasVoltageMessage())
+  {
     VoltagePacket response[VOLTAGE_BUFFER_SIZE];
     size_t size;
-    if (m7ReceiveVoltage(response, size)) {
-      for (size_t i = 0; i < size; ++i) {
-        Serial.print("ADC ID: ");
-        Serial.print(response[i].adc_id);
-        Serial.print(", Setnum: ");
-        Serial.print(response[i].setnum);
-        Serial.print(", ");
-        Serial.print(response[i].voltage, 8);
-        Serial.println("V");
+    if (m7ReceiveVoltage(response, size))
+    {
+      for (size_t i = 0; i < size; ++i)
+      {
+        // Serial.print("ADC ID: ");
+        // Serial.print(response[i].adc_id);
+        // Serial.print(", Setnum: ");
+        // Serial.print(response[i].setnum);
+        // Serial.print(", ");
+        // Serial.print(response[i].voltage, 8);
+        binaryFloat send;
+        send.floatingPoint = response[i].voltage;
+        Serial.write(send.binary, 4);
+        // Serial.println("V");
       }
     }
   }
