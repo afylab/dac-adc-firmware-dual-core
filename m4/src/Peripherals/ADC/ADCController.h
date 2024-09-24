@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "Config.h"
-#include "FunctionRegistry/FunctionRegistry.h"
 #include "FunctionRegistry/FunctionRegistryHelpers.h"
 #include "Peripherals/ADC/ADCBoard.h"
 #include "Peripherals/OperationResult.h"

@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "DACChannel.h"
-#include "FunctionRegistry/FunctionRegistry.h"
 #include "FunctionRegistry/FunctionRegistryHelpers.h"
 #include "Peripherals/OperationResult.h"
 #include "Utils/TimingUtil.h"

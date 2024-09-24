@@ -6,6 +6,8 @@
 #include <Arduino.h>
 #include <Peripherals/PeripheralCommsController.h>
 
+#include "Config.h"
+
 // ADC symbols
 // All tables & pages reference AD7734 Data Sheet Rev B (4 Channels, AD7732 is 2
 // Channels) Communications Register, Table 11 Summery
@@ -36,8 +38,6 @@
 #define ADDR_CHANNELCONVERSIONTIME(adc_channel) (0x30 + adc_channel)
 #define ADDR_MODE(adc_channel) (0x38 + adc_channel)
 
-
-
 #define BIT_MODE16 0 << 1
 #define BIT_MODE24 1 << 1
 
@@ -54,7 +54,6 @@
 #define CH_ZERO_SCALE_SYS_CAL_MODE 6 << 5 | BIT_MODE
 #define CH_FULL_SCALE_SYS_CAL_MODE 7 << 5 | BIT_MODE
 #define CH_EN_CONT_CONV 1 << 3
-
 
 #define ADCRES16 65535.0
 #define ADCRES24 16777215.0
@@ -73,7 +72,6 @@ class ADCBoard {
   int data_ready_pin;
   int reset_pin;
 
-
   void waitDataReady() {
     int count = 0;
     while (digitalRead(data_ready_pin) == HIGH && count < 2000) {
@@ -83,13 +81,11 @@ class ADCBoard {
   }
 
  public:
-  inline static PeripheralCommsController commsController = PeripheralCommsController(ADC_SPI_SETTINGS);
+  inline static PeripheralCommsController commsController =
+      PeripheralCommsController(ADC_SPI_SETTINGS);
 
-  ADCBoard(int cs_pin,
-           int data_ready_pin, int reset_pin)
-      : cs_pin(cs_pin),
-        data_ready_pin(data_ready_pin),
-        reset_pin(reset_pin) {}
+  ADCBoard(int cs_pin, int data_ready_pin, int reset_pin)
+      : cs_pin(cs_pin), data_ready_pin(data_ready_pin), reset_pin(reset_pin) {}
 
   void setup() {
     pinMode(reset_pin, OUTPUT);
@@ -228,8 +224,7 @@ class ADCBoard {
     return result;
   }
 
-  std::vector<double> continuousConvert(int channel_index,
-                                        uint32_t period_us,
+  std::vector<double> continuousConvert(int channel_index, uint32_t period_us,
                                         uint32_t duration) {
     std::vector<double> data;
     uint32_t num_samples = duration / period_us;
@@ -386,7 +381,8 @@ class ADCBoard {
   void zeroScaleSelfCalibration() {
     commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    commsController.transfer(WRITE | ADDR_MODE(0)); // channel is zero but this is system-wide
+    commsController.transfer(
+        WRITE | ADDR_MODE(0));  // channel is zero but this is system-wide
     commsController.transfer(ZERO_SCALE_SELF_CAL_MODE);
     digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
