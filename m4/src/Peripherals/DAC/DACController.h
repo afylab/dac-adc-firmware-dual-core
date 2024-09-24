@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "DACChannel.h"
-#include "FunctionRegistry.h"
-#include "FunctionRegistryMacros.h"
+#include "FunctionRegistry/FunctionRegistry.h"
+#include "FunctionRegistry/FunctionRegistryHelpers.h"
 #include "Peripherals/OperationResult.h"
 #include "Utils/TimingUtil.h"
 #include "Utils/shared_memory.h"
@@ -19,17 +19,17 @@ class DACController {
 
  public:
   inline static void initializeRegistry() {
-    REGISTER_MEMBER_FUNCTION_0(initialize, "INITIALIZE");
-    REGISTER_MEMBER_FUNCTION_0(initialize, "INIT");
-    REGISTER_MEMBER_FUNCTION_0(
+    registerMemberFunction(initialize, "INITIALIZE");
+    registerMemberFunction(initialize, "INIT");
+    registerMemberFunction(
         initialize, "INNIT");  // oi bruv u got a loicense for that DAC? 🇬🇧
-    REGISTER_MEMBER_FUNCTION_2(setVoltage, "SET");
-    REGISTER_MEMBER_FUNCTION_1(getVoltage, "GET_DAC");
-    REGISTER_MEMBER_FUNCTION_2(sendCode, "SEND_CODE");
-    REGISTER_MEMBER_FUNCTION_2(setFullScale, "FULL_SCALE");
-    REGISTER_MEMBER_FUNCTION_0(inquiryOSG, "INQUIRY_OSG");
-    REGISTER_MEMBER_FUNCTION_5(autoRamp1, "RAMP1");
-    REGISTER_MEMBER_FUNCTION_8(autoRamp2, "RAMP2");
+    registerMemberFunction(setVoltage, "SET");
+    registerMemberFunction(getVoltage, "GET_DAC");
+    registerMemberFunction(sendCode, "SEND_CODE");
+    registerMemberFunction(setFullScale, "FULL_SCALE");
+    registerMemberFunction(inquiryOSG, "INQUIRY_OSG");
+    registerMemberFunction(autoRamp1, "RAMP1");
+    registerMemberFunction(autoRamp2, "RAMP2");
   }
 
   inline static void addChannel(int cs_pin) {

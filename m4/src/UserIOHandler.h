@@ -4,15 +4,15 @@
 
 #include <vector>
 
-#include "FunctionRegistry.h"
+#include "FunctionRegistry/FunctionRegistry.h"
 #include "Peripherals/OperationResult.h"
 
 struct UserIOHandler {
   static void setup() {
-    REGISTER_MEMBER_FUNCTION_0(nop, "NOP");
-    REGISTER_MEMBER_FUNCTION_0(id, "*IDN?");
-    REGISTER_MEMBER_FUNCTION_0(rdy, "*RDY?");
-    REGISTER_MEMBER_FUNCTION_0(serialNumber, "SERIAL_NUMBER");
+    registerMemberFunction(nop, "NOP");
+    registerMemberFunction(id, "*IDN?");
+    registerMemberFunction(rdy, "*RDY?");
+    registerMemberFunction(serialNumber, "SERIAL_NUMBER");
   }
 
   static OperationResult nop() { return OperationResult::Success("NOP"); }

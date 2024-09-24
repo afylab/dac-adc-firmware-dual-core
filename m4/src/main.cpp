@@ -1,8 +1,8 @@
 #include <Arduino.h>
 
 #include "Config.h"
-#include "FunctionRegistry.h"
-#include "FunctionRegistryMacros.h"
+#include "FunctionRegistry/FunctionRegistry.h"
+#include "FunctionRegistry/FunctionRegistryHelpers.h"
 #include "Peripherals/ADC/ADCController.h"
 #include "Peripherals/DAC/DACController.h"
 #include "Peripherals/God.h"

@@ -14,13 +14,13 @@ class God {
   static void setup() { initializeRegistry(); }
 
   static void initializeRegistry() {
-    REGISTER_MEMBER_FUNCTION_VECTOR(timeSeriesBufferRampWrapper,
-                                    "TIME_SERIES_BUFFER_RAMP");
-    REGISTER_MEMBER_FUNCTION_VECTOR(dacLedBufferRampWrapper,
-                                    "DAC_LED_BUFFER_RAMP");
-    REGISTER_MEMBER_FUNCTION_0(dacChannelCalibration, "DAC_CH_CAL");
-    REGISTER_MEMBER_FUNCTION_VECTOR(twoDimensionalFlexibleRampWrapper,
-                                    "2D_TIME_SERIES_RAMP");
+    registerMemberFunctionVector(timeSeriesBufferRampWrapper,
+                                 "TIME_SERIES_BUFFER_RAMP");
+    registerMemberFunctionVector(dacLedBufferRampWrapper,
+                                 "DAC_LED_BUFFER_RAMP");
+    registerMemberFunction(dacChannelCalibration, "DAC_CH_CAL");
+    registerMemberFunctionVector(twoDimensionalFlexibleRampWrapper,
+                                 "2D_TIME_SERIES_RAMP");
   }
 
   struct AxisChannel {
@@ -246,12 +246,14 @@ class God {
     if (numDacChannels < 1 || numAdcChannels < 1) {
       return OperationResult::Failure("Invalid number of channels");
     }
-    // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per byte, 4 bytes per ADC conversion
-    // if (adc_interval_us < adc_comms_period_us*numAdcChannels) {
+    // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per
+    // byte, 4 bytes per ADC conversion if (adc_interval_us <
+    // adc_comms_period_us*numAdcChannels) {
     //   return OperationResult::Failure("ADC interval too short");
     // }
-    // uint32_t dac_comms_period_us = (1.0/SPI_SPEED)*1e6*8*3; // 8 bits per byte, 3 bytes per DAC update
-    // if (dac_interval_us < dac_comms_period_us*numDacChannels) {
+    // uint32_t dac_comms_period_us = (1.0/SPI_SPEED)*1e6*8*3; // 8 bits per
+    // byte, 3 bytes per DAC update if (dac_interval_us <
+    // dac_comms_period_us*numDacChannels) {
     //   return OperationResult::Failure("DAC interval too short");
     // }
 
@@ -407,13 +409,18 @@ class God {
       return OperationResult::Failure("Invalid number of channels");
     }
     for (int i = 0; i < numAdcChannels; i++) {
-      if (dac_settling_time_us < ADCController::getConversionTimeFloat(adcChannels[i])) {
-        return OperationResult::Failure("DAC settling time too short for ADC conversion time");
+      if (dac_settling_time_us <
+          ADCController::getConversionTimeFloat(adcChannels[i])) {
+        return OperationResult::Failure(
+            "DAC settling time too short for ADC conversion time");
       }
     }
-    // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per byte, 4 bytes per ADC conversion
-    // if (numAdcChannels*numAdcAverages*adc_comms_period_us > dac_interval_us - dac_settling_time_us) {
-    //   return OperationResult::Failure("Buffer Ramp limited by ADC SPI comms");
+    // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per
+    // byte, 4 bytes per ADC conversion if
+    // (numAdcChannels*numAdcAverages*adc_comms_period_us > dac_interval_us -
+    // dac_settling_time_us) {
+    //   return OperationResult::Failure("Buffer Ramp limited by ADC SPI
+    //   comms");
     // }
 
     int steps = 0;
@@ -452,7 +459,8 @@ class God {
           for (int i = 0; i < numAdcChannels; i++) {
             float total = 0.0;
             for (int j = 0; j < numAdcAverages; j++) {
-              total += ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+              total +=
+                  ADCController::getVoltageDataNoTransaction(adcChannels[i]);
             }
             float v = total / numAdcAverages;
             packets[i] = {static_cast<uint8_t>(adcChannels[i]),

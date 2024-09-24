@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "Config.h"
-#include "FunctionRegistry.h"
-#include "FunctionRegistryMacros.h"
+#include "FunctionRegistry/FunctionRegistry.h"
+#include "FunctionRegistry/FunctionRegistryHelpers.h"
 #include "Peripherals/ADC/ADCBoard.h"
 #include "Peripherals/OperationResult.h"
 class ADCController {
@@ -29,19 +29,19 @@ class ADCController {
   }
 
   static void initializeRegistry() {
-    REGISTER_MEMBER_FUNCTION_1(readChannelVoltage, "GET_ADC");
-    REGISTER_MEMBER_FUNCTION_2(setConversionTime, "CONVERT_TIME");
-    REGISTER_MEMBER_FUNCTION_1(getConversionTime, "GET_CONVERT_TIME");
-    REGISTER_MEMBER_FUNCTION_3(continuousConvertRead,
+    registerMemberFunction(readChannelVoltage, "GET_ADC");
+    registerMemberFunction(setConversionTime, "CONVERT_TIME");
+    registerMemberFunction(getConversionTime, "GET_CONVERT_TIME");
+    registerMemberFunction(continuousConvertRead,
                                "CONTINUOUS_CONVERT_READ");
-    REGISTER_MEMBER_FUNCTION_1(idleMode, "IDLE_MODE");
-    REGISTER_MEMBER_FUNCTION_0(getChannelsActive, "GET_CHANNELS_ACTIVE");
-    REGISTER_MEMBER_FUNCTION_0(resetAllADCBoards, "RESET");
-    REGISTER_MEMBER_FUNCTION_1(talkADC, "TALK");
-    REGISTER_MEMBER_FUNCTION_0(adcZeroScaleCal, "ADC_ZERO_SC_CAL");
-    REGISTER_MEMBER_FUNCTION_0(adcChannelSystemZeroScaleCal,
+    registerMemberFunction(idleMode, "IDLE_MODE");
+    registerMemberFunction(getChannelsActive, "GET_CHANNELS_ACTIVE");
+    registerMemberFunction(resetAllADCBoards, "RESET");
+    registerMemberFunction(talkADC, "TALK");
+    registerMemberFunction(adcZeroScaleCal, "ADC_ZERO_SC_CAL");
+    registerMemberFunction(adcChannelSystemZeroScaleCal,
                                "ADC_CH_ZERO_SC_CAL");
-    REGISTER_MEMBER_FUNCTION_0(adcChannelSystemFullScaleCal,
+    registerMemberFunction(adcChannelSystemFullScaleCal,
                                "ADC_CH_FULL_SC_CAL");
   }
 
