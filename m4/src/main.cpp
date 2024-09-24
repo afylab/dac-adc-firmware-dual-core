@@ -12,6 +12,8 @@
 
 #include "Utils/shared_memory.h"
 
+#include "Peripherals/God2D.h"
+
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -38,6 +40,7 @@ void setup() {
   ADCController::setup();
 
   God::setup();
+  God2D::setup();
   
 }
 
