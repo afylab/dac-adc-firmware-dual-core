@@ -262,28 +262,6 @@ public:
       uint32_t dac_interval_us, uint32_t adc_interval_us, int *dacChannels,
       float *dacV0s, float *dacVfs, int *adcChannels)
   {
-    if (adc_interval_us < 1 || dac_interval_us < 1)
-    {
-      return OperationResult::Failure("Invalid interval");
-    }
-    if (numSteps < 1)
-    {
-      return OperationResult::Failure("Invalid number of steps");
-    }
-    if (numDacChannels < 1 || numAdcChannels < 1)
-    {
-      return OperationResult::Failure("Invalid number of channels");
-    }
-    // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per
-    // byte, 4 bytes per ADC conversion if (adc_interval_us <
-    // adc_comms_period_us*numAdcChannels) {
-    //   return OperationResult::Failure("ADC interval too short");
-    // }
-    // uint32_t dac_comms_period_us = (1.0/SPI_SPEED)*1e6*8*3; // 8 bits per
-    // byte, 3 bytes per DAC update if (dac_interval_us <
-    // dac_comms_period_us*numDacChannels) {
-    //   return OperationResult::Failure("DAC interval too short");
-    // }
 
     int steps = 0;
     int x = 0;
@@ -484,6 +462,16 @@ public:
       adcChannels[i] = static_cast<int>(args[currentIndex++]);
     }
 
+    for (int i = 0; i < numAdcChannels; i++)
+    {
+      if (dac_settling_time_us <
+          ADCController::getConversionTimeFloat(adcChannels[i]))
+      {
+        return OperationResult::Failure(
+            "DAC settling time too short for ADC conversion time");
+      }
+    }
+
     // Validate total number of DAC channels
     if (numFastDacChannels + numSlowDacChannels != numDacChannels)
     {
@@ -620,40 +608,6 @@ public:
       uint32_t dac_interval_us, uint32_t dac_settling_time_us, int *dacChannels,
       float *dacV0s, float *dacVfs, int *adcChannels)
   {
-    if (dac_settling_time_us < 1 || dac_interval_us < 1 ||
-        dac_settling_time_us >= dac_interval_us)
-    {
-      return OperationResult::Failure("Invalid interval or settling time");
-    }
-    if (numAdcAverages < 1)
-    {
-      return OperationResult::Failure("Invalid number of ADC averages");
-    }
-    if (numSteps < 1)
-    {
-      return OperationResult::Failure("Invalid number of steps");
-    }
-    if (numDacChannels < 1 || numAdcChannels < 1)
-    {
-      return OperationResult::Failure("Invalid number of channels");
-    }
-    for (int i = 0; i < numAdcChannels; i++)
-    {
-      if (dac_settling_time_us <
-          ADCController::getConversionTimeFloat(adcChannels[i]))
-      {
-        return OperationResult::Failure(
-            "DAC settling time too short for ADC conversion time");
-      }
-    }
-    // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per
-    // byte, 4 bytes per ADC conversion if
-    // (numAdcChannels*numAdcAverages*adc_comms_period_us > dac_interval_us -
-    // dac_settling_time_us) {
-    //   return OperationResult::Failure("Buffer Ramp limited by ADC SPI
-    //   comms");
-    // }
-
     int steps = 0;
     int x = 0;
 
