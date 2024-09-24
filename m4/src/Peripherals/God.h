@@ -19,170 +19,338 @@ class God {
     registerMemberFunctionVector(dacLedBufferRampWrapper,
                                  "DAC_LED_BUFFER_RAMP");
     registerMemberFunction(dacChannelCalibration, "DAC_CH_CAL");
-    registerMemberFunctionVector(twoDimensionalFlexibleRampWrapper,
-                                 "2D_TIME_SERIES_RAMP");
+    registerMemberFunctionVector(timeSeriesBufferRamp2D,
+                                 "2D_TIME_SERIES");
   }
 
-  struct AxisChannel {
-    int channel;
-    float v0;
-    float vf;
-  };
-
-  struct Axis {
-    std::vector<AxisChannel> channels;
-  };
-
-  // args:
-  // numDacChannels, numAdcChannels, retrace, numSteps_slow, numSteps_fast,
-  // dac_interval_us, adc_interval_us,
-  // slow_axis_num_channels, slow_ch1, slow_v01, slow_vf1, slow_ch2, slow_v02,
-  // slow_vf2, ..., fast_axis_num_channels, fast_ch1, fast_v01, fast_vf1,
-  // fast_ch2, fast_v02, fast_vf2, ..., adc0, adc1, adc2, ...
-  static OperationResult twoDimensionalFlexibleRampWrapper(
+  // timeSeries2DBufferRampWrapper:
+  // Arguments (in order):
+  // numDacChannels, numAdcChannels, numStepsFast, numStepsSlow,
+  // dacInterval_us, adcInterval_us, retrace (0.0f = false, 1.0f = true),
+  // numFastDacChannels, [fastDacChannelID, fastDacV0, fastDacVf] *
+  // numFastDacChannels, numSlowDacChannels, [slowDacChannelID, slowDacV0,
+  // slowDacVf] * numSlowDacChannels, [adcChannelID] * numAdcChannels
+  static OperationResult timeSeriesBufferRamp2D(
       const std::vector<float>& args) {
-    if (args.size() < 9) {
-      return OperationResult::Failure("Not enough arguments provided");
+    // Minimum required arguments:
+    // 7 initial params + at least 1 fast DAC channel + 1 slow DAC channel + ADC
+    // channels
+    if (args.size() < 7 + 3 + 3 + 1) {
+      return OperationResult::Failure(
+          "Not enough arguments provided for 2D ramp");
     }
 
-    int numDacChannels = static_cast<int>(args[0]);
-    int numAdcChannels = static_cast<int>(args[1]);
-    bool retrace = static_cast<bool>(args[2]);
-    int numSteps_slow = static_cast<int>(args[3]);
-    int numSteps_fast = static_cast<int>(args[4]);
-    uint32_t dac_interval_us = static_cast<uint32_t>(args[5]);
-    uint32_t adc_interval_us = static_cast<uint32_t>(args[6]);
+    size_t currentIndex = 0;
 
-    int slow_axis_num_channels = static_cast<int>(args[7]);
+    // Parse initial parameters
+    int numDacChannels = static_cast<int>(args[currentIndex++]);
+    int numAdcChannels = static_cast<int>(args[currentIndex++]);
+    int numStepsFast = static_cast<int>(args[currentIndex++]);
+    int numStepsSlow = static_cast<int>(args[currentIndex++]);
+    uint32_t dac_interval_us = static_cast<uint32_t>(args[currentIndex++]);
+    uint32_t adc_interval_us = static_cast<uint32_t>(args[currentIndex++]);
+    bool retrace =
+        static_cast<bool>(args[currentIndex++]);  // 0.0f = false, 1.0f = true
 
-    // Parse slow axis information
-    Axis slow_axis;
-    for (int i = 0; i < slow_axis_num_channels; ++i) {
-      int base_index = 8 + i * 3;
-      AxisChannel channel = {static_cast<int>(args[base_index]),
-                             args[base_index + 1], args[base_index + 2]};
-      slow_axis.channels.push_back(channel);
+    // Parse Fast DAC Channels
+    if (currentIndex >= args.size()) {
+      return OperationResult::Failure(
+          "Unexpected end of arguments while parsing fast DAC channels");
+    }
+    int numFastDacChannels = static_cast<int>(args[currentIndex++]);
+    if (args.size() < currentIndex + numFastDacChannels * 3) {
+      return OperationResult::Failure(
+          "Not enough arguments for fast DAC channels");
     }
 
-    // Parse fast axis information
-    int fast_axis_start = 8 + slow_axis_num_channels * 3;
-    int fast_axis_num_channels = static_cast<int>(args[fast_axis_start]);
-    Axis fast_axis;
-    for (int i = 0; i < fast_axis_num_channels; ++i) {
-      int base_index = fast_axis_start + 1 + i * 3;
-      AxisChannel channel = {static_cast<int>(args[base_index]),
-                             args[base_index + 1], args[base_index + 2]};
-      fast_axis.channels.push_back(channel);
+    int* fastDacChannels = new int[numFastDacChannels];
+    float* fastDacV0s = new float[numFastDacChannels];
+    float* fastDacVfs = new float[numFastDacChannels];
+
+    for (int i = 0; i < numFastDacChannels; ++i) {
+      fastDacChannels[i] = static_cast<int>(args[currentIndex++]);
+      fastDacV0s[i] = args[currentIndex++];
+      fastDacVfs[i] = args[currentIndex++];
     }
 
-    // Parse ADC channel information
-    std::vector<int> adcChannels(numAdcChannels);
-    int adc_start = fast_axis_start + 1 + fast_axis_num_channels * 3;
+    // Parse Slow DAC Channels
+    if (currentIndex >= args.size()) {
+      // Clean up allocated memory before returning
+      delete[] fastDacChannels;
+      delete[] fastDacV0s;
+      delete[] fastDacVfs;
+      return OperationResult::Failure(
+          "Unexpected end of arguments while parsing slow DAC channels");
+    }
+    int numSlowDacChannels = static_cast<int>(args[currentIndex++]);
+    if (args.size() < currentIndex + numSlowDacChannels * 3) {
+      // Clean up allocated memory before returning
+      delete[] fastDacChannels;
+      delete[] fastDacV0s;
+      delete[] fastDacVfs;
+      return OperationResult::Failure(
+          "Not enough arguments for slow DAC channels");
+    }
+
+    int* slowDacChannels = new int[numSlowDacChannels];
+    float* slowDacV0s = new float[numSlowDacChannels];
+    float* slowDacVfs = new float[numSlowDacChannels];
+
+    for (int i = 0; i < numSlowDacChannels; ++i) {
+      slowDacChannels[i] = static_cast<int>(args[currentIndex++]);
+      slowDacV0s[i] = args[currentIndex++];
+      slowDacVfs[i] = args[currentIndex++];
+    }
+
+    // Parse ADC Channels
+    if (args.size() < currentIndex + numAdcChannels) {
+      // Clean up allocated memory before returning
+      delete[] fastDacChannels;
+      delete[] fastDacV0s;
+      delete[] fastDacVfs;
+      delete[] slowDacChannels;
+      delete[] slowDacV0s;
+      delete[] slowDacVfs;
+      return OperationResult::Failure("Not enough arguments for ADC channels");
+    }
+
+    int* adcChannels = new int[numAdcChannels];
     for (int i = 0; i < numAdcChannels; ++i) {
-      adcChannels[i] = static_cast<int>(args[adc_start + i]);
+      adcChannels[i] = static_cast<int>(args[currentIndex++]);
     }
 
-    // print all info for debugging
-    char buffer[1000];
-    sprintf(
-        buffer,
-        "numDacChannels: %d\nnumAdcChannels: %d\nretrace: %d\nnumSteps_slow: "
-        "%d\nnumSteps_fast: %d\ndac_interval_us: %d\nadc_interval_us: "
-        "%d\nslow_axis_num_channels: %d\n",
-        numDacChannels, numAdcChannels, retrace, numSteps_slow, numSteps_fast,
-        static_cast<int>(dac_interval_us), static_cast<int>(adc_interval_us),
-        slow_axis_num_channels);
-    m4SendChar(buffer, strlen(buffer));
-    for (int i = 0; i < slow_axis_num_channels; ++i) {
-      int base_index = 8 + i * 3;
-      sprintf(buffer, "slow_axis channel: %d, v0: %f, vf: %f\n",
-              static_cast<int>(args[base_index]), args[base_index + 1],
-              args[base_index + 2]);
-      m4SendChar(buffer, strlen(buffer));
+    // Validate total number of DAC channels
+    if (numFastDacChannels + numSlowDacChannels != numDacChannels) {
+      // Clean up allocated memory before returning
+      delete[] fastDacChannels;
+      delete[] fastDacV0s;
+      delete[] fastDacVfs;
+      delete[] slowDacChannels;
+      delete[] slowDacV0s;
+      delete[] slowDacVfs;
+      delete[] adcChannels;
+      return OperationResult::Failure(
+          "Sum of fast and slow DAC channels does not match numDacChannels");
     }
 
-    return twoDimensionalFlexibleRampBase(
-        numDacChannels, numAdcChannels, retrace, numSteps_slow, numSteps_fast,
-        dac_interval_us, adc_interval_us, slow_axis, fast_axis, adcChannels);
+    // Allocate memory for slow DAC voltage setpoints
+    float** slowVoltSetpoints = new float*[numSlowDacChannels];
+    for (int i = 0; i < numSlowDacChannels; ++i) {
+      slowVoltSetpoints[i] = new float[numStepsSlow];
+      for (int j = 0; j < numStepsSlow; ++j) {
+        slowVoltSetpoints[i][j] =
+            slowDacV0s[i] +
+            (slowDacVfs[i] - slowDacV0s[i]) * j / (numStepsSlow - 1);
+      }
+    }
+
+    // Setup timers once for the entire 2D ramp
+    TimingUtil::setupTimersTimeSeries(dac_interval_us, adc_interval_us);
+
+    // Start continuous ADC conversions
+    for (int i = 0; i < numAdcChannels; i++) {
+      ADCController::startContinuousConversion(adcChannels[i]);
+    }
+
+    // Iterate over slow steps
+    for (int slowStep = 0; slowStep < numStepsSlow && !getStopFlag();
+         ++slowStep) {
+      // Set slow DAC channels to the current slow step voltages
+      DACChannel::commsController.beginTransaction();
+      for (int i = 0; i < numSlowDacChannels; ++i) {
+        DACController::setVoltageNoTransaction(slowDacChannels[i],
+                                               slowVoltSetpoints[i][slowStep]);
+      }
+      DACController::toggleLdac();
+      DACChannel::commsController.endTransaction();
+
+      // Call the base ramp function for fast channels (forward ramp)
+      OperationResult resultForward = timeSeriesBufferRampBaseNoConversionSetup(
+          numFastDacChannels, numAdcChannels, numStepsFast, dac_interval_us,
+          adc_interval_us, fastDacChannels, fastDacV0s, fastDacVfs,
+          adcChannels);
+
+      if (!resultForward.isSuccess()) {
+        // Clean up allocated memory before returning
+        for (int i = 0; i < numSlowDacChannels; ++i) {
+          delete[] slowVoltSetpoints[i];
+        }
+        delete[] slowVoltSetpoints;
+        delete[] fastDacChannels;
+        delete[] fastDacV0s;
+        delete[] fastDacVfs;
+        delete[] slowDacChannels;
+        delete[] slowDacV0s;
+        delete[] slowDacVfs;
+        delete[] adcChannels;
+        return resultForward;  // Return the failure reason
+      }
+
+      // If retrace is enabled, perform the reverse ramp to return to V0
+      if (retrace) {
+        // Create temporary arrays with V0 and Vf swapped for reverse ramp
+        float* reverseV0s = new float[numFastDacChannels];
+        float* reverseVfs = new float[numFastDacChannels];
+        for (int i = 0; i < numFastDacChannels; ++i) {
+          reverseV0s[i] = fastDacVfs[i];
+          reverseVfs[i] = fastDacV0s[i];
+        }
+
+        // Call the base ramp function for fast channels (reverse ramp)
+        OperationResult resultReverse = timeSeriesBufferRampBaseNoConversionSetup(
+            numFastDacChannels, numAdcChannels, numStepsFast, dac_interval_us,
+            adc_interval_us, fastDacChannels, reverseV0s, reverseVfs,
+            adcChannels);
+
+        // Clean up temporary reverse voltage arrays
+        delete[] reverseV0s;
+        delete[] reverseVfs;
+
+        if (!resultReverse.isSuccess()) {
+          // Clean up allocated memory before returning
+          for (int i = 0; i < numSlowDacChannels; ++i) {
+            delete[] slowVoltSetpoints[i];
+          }
+          delete[] slowVoltSetpoints;
+          delete[] fastDacChannels;
+          delete[] fastDacV0s;
+          delete[] fastDacVfs;
+          delete[] slowDacChannels;
+          delete[] slowDacV0s;
+          delete[] slowDacVfs;
+          delete[] adcChannels;
+          return resultReverse;  // Return the failure reason
+        }
+      }
+    }
+
+    // Disable ADC and DAC interrupts after ramping
+    TimingUtil::disableDacInterrupt();
+    TimingUtil::disableAdcInterrupt();
+
+    // Set ADC channels to idle mode
+    for (int i = 0; i < numAdcChannels; i++) {
+      ADCController::idleMode(adcChannels[i]);
+    }
+
+    // Clean up allocated memory
+    for (int i = 0; i < numSlowDacChannels; i++) {
+      delete[] slowVoltSetpoints[i];
+    }
+    delete[] slowVoltSetpoints;
+    delete[] fastDacChannels;
+    delete[] fastDacV0s;
+    delete[] fastDacVfs;
+    delete[] slowDacChannels;
+    delete[] slowDacV0s;
+    delete[] slowDacVfs;
+    delete[] adcChannels;
+
+    if (getStopFlag()) {
+      setStopFlag(false);
+      return OperationResult::Failure("2D RAMPING_STOPPED");
+    }
+
+    return OperationResult::Success();
   }
 
-  static OperationResult twoDimensionalFlexibleRampBase(
-      int numDacChannels, int numAdcChannels, bool retrace, int numSteps_slow,
-      int numSteps_fast, uint32_t dac_interval_us, uint32_t adc_interval_us,
-      const Axis& slow_axis, const Axis& fast_axis,
-      std::vector<int>& adcChannels) {
+  static OperationResult timeSeriesBufferRampBaseNoConversionSetup(
+      int numDacChannels, int numAdcChannels, int numSteps,
+      uint32_t dac_interval_us, uint32_t adc_interval_us, int* dacChannels,
+      float* dacV0s, float* dacVfs, int* adcChannels) {
     if (adc_interval_us < 1 || dac_interval_us < 1) {
       return OperationResult::Failure("Invalid interval");
     }
+    if (numSteps < 1) {
+      return OperationResult::Failure("Invalid number of steps");
+    }
+    if (numDacChannels < 1 || numAdcChannels < 1) {
+      return OperationResult::Failure("Invalid number of channels");
+    }
+    // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per
+    // byte, 4 bytes per ADC conversion if (adc_interval_us <
+    // adc_comms_period_us*numAdcChannels) {
+    //   return OperationResult::Failure("ADC interval too short");
+    // }
+    // uint32_t dac_comms_period_us = (1.0/SPI_SPEED)*1e6*8*3; // 8 bits per
+    // byte, 3 bytes per DAC update if (dac_interval_us <
+    // dac_comms_period_us*numDacChannels) {
+    //   return OperationResult::Failure("DAC interval too short");
+    // }
 
-    std::unordered_set<int> uniqueChannels;
-    std::vector<int> dacChannels;
-    std::vector<float> dacV0s(numDacChannels, 0.0f);
-    std::vector<float> dacVfs(numDacChannels, 0.0f);
+    int steps = 0;
+    int x = 0;
 
-    // Collect unique DAC channels
-    for (const auto& ch : slow_axis.channels) {
-      if (uniqueChannels.insert(ch.channel).second) {
-        dacChannels.push_back(ch.channel);
+    const int saved_data_size = numSteps * dac_interval_us / adc_interval_us;
+
+    float** voltSetpoints = new float*[numDacChannels];
+
+    for (int i = 0; i < numDacChannels; i++) {
+      voltSetpoints[i] = new float[numSteps];
+      for (int j = 0; j < numSteps; j++) {
+        voltSetpoints[i][j] =
+            dacV0s[i] + (dacVfs[i] - dacV0s[i]) * j / (numSteps - 1);
       }
     }
-    for (const auto& ch : fast_axis.channels) {
-      if (uniqueChannels.insert(ch.channel).second) {
-        dacChannels.push_back(ch.channel);
-      }
-    }
 
-    bool forward = true;
-    for (int slow_step = 0; slow_step < numSteps_slow; ++slow_step) {
-      float slow_progress = static_cast<float>(slow_step) / (numSteps_slow - 1);
+    TimingUtil::setupTimersTimeSeries(dac_interval_us, adc_interval_us);
 
-      // Set voltages for slow axis channels
-      for (const auto& ch : slow_axis.channels) {
-        float voltage = ch.v0 + (ch.vf - ch.v0) * slow_progress;
-        dacV0s[ch.channel] = voltage;
-        dacVfs[ch.channel] = voltage;
-      }
-
-      // Set initial and final voltages for fast axis channels
-      for (const auto& ch : fast_axis.channels) {
-        if (forward) {
-          dacV0s[ch.channel] = ch.v0;
-          dacVfs[ch.channel] = ch.vf;
+    while (x < saved_data_size && !getStopFlag()) {
+      if (TimingUtil::adcFlag) {
+        ADCBoard::commsController.beginTransaction();
+        if (steps <= 1) {
+          for (int i = 0; i < numAdcChannels; i++) {
+            ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+          }
         } else {
-          dacV0s[ch.channel] = ch.vf;
-          dacVfs[ch.channel] = ch.v0;
+          VoltagePacket* packets = new VoltagePacket[numAdcChannels];
+          for (int i = 0; i < numAdcChannels; i++) {
+            float v =
+                ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+            packets[i] = {static_cast<uint8_t>(adcChannels[i]),
+                          static_cast<uint32_t>(x), v};
+          }
+          m4SendVoltage(packets, numAdcChannels);
+          delete[] packets;
+          x++;
         }
+        ADCBoard::commsController.endTransaction();
+        TimingUtil::adcFlag = false;
       }
-
-      // print the slow axis
-      char buffer[100];
-      sprintf(buffer, "Slow axis step %d/%d, Direction: %s", slow_step,
-              numSteps_slow, forward ? "Forward" : "Reverse");
-      m4SendChar(buffer, strlen(buffer));
-      delayMicroseconds(1000);
-      // print all data you set for debugging
-      for (int i = 0; i < numDacChannels; ++i) {
-        sprintf(buffer, "DAC channel %d: v0: %f, vf: %f\n", dacChannels[i],
-                dacV0s[i], dacVfs[i]);
-        m4SendChar(buffer, strlen(buffer));
+      if (TimingUtil::dacFlag && steps < numSteps + 1) {
+        DACChannel::commsController.beginTransaction();
+        if (steps == 0) {
+          for (int i = 0; i < numDacChannels; i++) {
+            DACController::setVoltageNoTransaction(dacChannels[i],
+                                                   voltSetpoints[i][0]);
+          }
+        } else {
+          for (int i = 0; i < numDacChannels; i++) {
+            DACController::setVoltageNoTransaction(dacChannels[i],
+                                                   voltSetpoints[i][steps - 1]);
+          }
+        }
+        DACController::toggleLdac();
+        DACChannel::commsController.endTransaction();
+        steps++;
+        TimingUtil::dacFlag = false;
       }
-      delayMicroseconds(1000);
-
-      // Call the 1D ramp for the fast axis
-      OperationResult result = timeSeriesBufferRampBase(
-          dacChannels.size(), numAdcChannels, numSteps_fast, dac_interval_us,
-          adc_interval_us, dacChannels.data(), dacV0s.data(), dacVfs.data(),
-          adcChannels.data());
-
-      if (retrace) {
-        forward = !forward;
-      }
-
-      delayMicroseconds(1000);
     }
 
-    return OperationResult::Success(
-        "2D Flexible Axis Ramp completed successfully");
+    TimingUtil::disableDacInterrupt();
+    TimingUtil::disableAdcInterrupt();
+
+    for (int i = 0; i < numDacChannels; i++) {
+      delete[] voltSetpoints[i];
+    }
+    delete[] voltSetpoints;
+
+    if (getStopFlag()) {
+      setStopFlag(false);
+      return OperationResult::Failure("RAMPING_STOPPED");
+    }
+
+    return OperationResult::Success();
   }
 
   // args:
