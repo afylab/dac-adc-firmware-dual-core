@@ -99,7 +99,6 @@ class God {
               static_cast<int>(args[base_index]), args[base_index + 1],
               args[base_index + 2]);
       m4SendChar(buffer, strlen(buffer));
-      delete[] buffer;
     }
 
     return twoDimensionalFlexibleRampBase(
@@ -166,7 +165,6 @@ class God {
         sprintf(buffer, "DAC channel %d: v0: %f, vf: %f\n", dacChannels[i],
                 dacV0s[i], dacVfs[i]);
         m4SendChar(buffer, strlen(buffer));
-        delete[] buffer;
       }
       delayMicroseconds(1000);
 
@@ -278,10 +276,7 @@ class God {
       ADCController::startContinuousConversion(adcChannels[i]);
     }
 
-    while (x < saved_data_size) {
-      if (getStopFlag()) {
-        break;
-      }
+    while (x < saved_data_size && !getStopFlag()) {
       if (TimingUtil::adcFlag) {
         ADCBoard::commsController.beginTransaction();
         if (steps <= 1) {
@@ -442,10 +437,7 @@ class God {
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::startContinuousConversion(adcChannels[i]);
     }
-    while (x < numSteps) {
-      if (getStopFlag()) {
-        break;
-      }
+    while (x < numSteps && !getStopFlag()) {
       if (TimingUtil::adcFlag) {
         ADCBoard::commsController.beginTransaction();
         if (steps <= 1) {
