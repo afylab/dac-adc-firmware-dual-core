@@ -108,6 +108,8 @@ class God {
 
     TimingUtil::setupTimersTimeSeries(dac_interval_us, adc_interval_us);
 
+    setStopFlag(false);
+
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::startContinuousConversion(adcChannels[i]);
     }
@@ -269,6 +271,8 @@ class God {
 
     // Set up timers with the same period but phase shifted
     TimingUtil::setupTimersDacLed(dac_interval_us, dac_settling_time_us);
+
+    setStopFlag(false);
 
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::startContinuousConversion(adcChannels[i]);

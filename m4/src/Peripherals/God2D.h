@@ -154,6 +154,8 @@ public:
       }
     }
 
+    setStopFlag(false);
+
     // Start continuous ADC conversions
     for (int i = 0; i < numAdcChannels; i++)
     {
@@ -499,6 +501,8 @@ public:
             (slowDacVfs[i] - slowDacV0s[i]) * j / (numStepsSlow - 1);
       }
     }
+
+    setStopFlag(false);
 
     // Start continuous ADC conversions
     for (int i = 0; i < numAdcChannels; i++)
