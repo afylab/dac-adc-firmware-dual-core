@@ -363,9 +363,7 @@ class God {
     return OperationResult::Success("CALIBRATION_FINISHED");
   }
 
-  // you must set ADC conversion time before calling this function. This
-  // function will get the ADC conversion time from its registers before running
-  // the ramp. args: numDacChannels, numAdcChannels, numDacSteps,
+  // args: numDacChannels, numAdcChannels, numDacSteps,
   // numAdcMeasuresPerDacStep, numAdcAverages, adcConversionTime_us, {for each
   // dac channel: dac channel, v0_1, vf_1, v0_2, vf_2}, {for each adc channel:
   // adc channel}
@@ -407,7 +405,8 @@ class God {
                                           numAdcChannels > 1);
     }
 
-    uint32_t dacPeriod_us = numAdcMeasuresPerDacStep * actualConversionTime_us + 10;
+    uint32_t dacPeriod_us = numAdcMeasuresPerDacStep * actualConversionTime_us +
+                            10 + 5 + actualConversionTime_us;
 
     setStopFlag(false);
 
@@ -430,7 +429,9 @@ class God {
     int steps = 0;
     int totalSteps = numDacSteps * numAdcAverages + 1;
     int x = 0;
-    int total_data_size = numDacSteps * numAdcMeasuresPerDacStep * numAdcAverages;
+    int total_data_size =
+        numDacSteps * numAdcMeasuresPerDacStep * numAdcAverages;
+    bool justSetDac = false;
 
     // for debugging:
     float dacPeriodFloat = static_cast<float>(dacPeriod_us);
@@ -444,8 +445,6 @@ class God {
 
     TimingUtil::setupTimersTimeSeries(dacPeriod_us, actualConversionTime_us);
 
-    delayMicroseconds(5);
-
     while (x < total_data_size && !getStopFlag()) {
       if (TimingUtil::adcFlag && x < steps * numAdcMeasuresPerDacStep) {
         ADCBoard::commsController.beginTransaction();
@@ -454,16 +453,21 @@ class God {
             ADCController::getVoltageDataNoTransaction(adcChannels[i]);
           }
         } else {
-          VoltagePacket* packets = new VoltagePacket[numAdcChannels];
-          for (int i = 0; i < numAdcChannels; i++) {
-            float v =
-                ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-            packets[i] = {static_cast<uint8_t>(adcChannels[i]),
-                          static_cast<uint32_t>(x), v};
+          if (justSetDac) {
+            justSetDac = false;
+          } else {
+            VoltagePacket* packets = new VoltagePacket[numAdcChannels];
+            for (int i = 0; i < numAdcChannels; i++) {
+              float v =
+                  ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+              packets[i] = {static_cast<uint8_t>(adcChannels[i]), static_cast<uint32_t>(x),
+                            v};
+            }
+            // m4SendVoltage(packets, numAdcChannels);
+            delete[] packets;
+                      x++;
+
           }
-          // m4SendVoltage(packets, numAdcChannels);
-          delete[] packets;
-          x++;
         }
         ADCBoard::commsController.endTransaction();
         TimingUtil::adcFlag = false;
@@ -485,6 +489,7 @@ class God {
         DACChannel::commsController.endTransaction();
         steps++;
         TimingUtil::dacFlag = false;
+        justSetDac = true;
         TIM8->CNT = 0;
       }
     }
