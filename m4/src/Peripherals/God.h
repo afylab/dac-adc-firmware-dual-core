@@ -407,7 +407,7 @@ class God {
                                           numAdcChannels > 1);
     }
 
-    uint32_t dacPeriod_us = numAdcMeasuresPerDacStep * actualConversionTime_us;
+    uint32_t dacPeriod_us = numAdcMeasuresPerDacStep * actualConversionTime_us + 10;
 
     setStopFlag(false);
 
@@ -415,27 +415,39 @@ class God {
     float** voltSetpoints = new float*[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
-      voltSetpoints[i] = new float[numDacSteps];
+      voltSetpoints[i] = new float[numDacSteps * numAdcAverages];
+      int l = 0;
       for (int j = 0; j < numDacSteps; j++) {
-        float* dacV0 = j % 2 ? dacV0_1 : dacV0_2;
-        float* dacVf = j % 2 ? dacVf_1 : dacVf_2;
-        voltSetpoints[i][j] =
-            dacV0[i] + (dacVf[i] - dacV0[i]) * j / (numDacSteps - 1);
+        for (int k = 0; k < numAdcAverages; k++) {
+          float* dacV0 = l % 2 ? dacV0_1 : dacV0_2;
+          float* dacVf = l % 2 ? dacVf_1 : dacVf_2;
+          voltSetpoints[i][l++] =
+              dacV0[i] + (dacVf[i] - dacV0[i]) * j / (numDacSteps - 1);
+        }
       }
     }
 
     int steps = 0;
+    int totalSteps = numDacSteps * numAdcAverages + 1;
     int x = 0;
-    int saved_data_size = numDacSteps * numAdcMeasuresPerDacStep;
+    int total_data_size = numDacSteps * numAdcMeasuresPerDacStep * numAdcAverages;
+
+    // for debugging:
+    float dacPeriodFloat = static_cast<float>(dacPeriod_us);
+    m4SendFloat(&dacPeriodFloat, 1);
+    float adcPeriodFloat = static_cast<float>(actualConversionTime_us);
+    m4SendFloat(&adcPeriodFloat, 1);
 
     for (int i = 0; i < numAdcChannels; ++i) {
       ADCController::startContinuousConversion(adcChannels[i]);
     }
-    delayMicroseconds(5);
+
     TimingUtil::setupTimersTimeSeries(dacPeriod_us, actualConversionTime_us);
 
-    while (x < saved_data_size && !getStopFlag()) {
-      if (TimingUtil::adcFlag) {
+    delayMicroseconds(5);
+
+    while (x < total_data_size && !getStopFlag()) {
+      if (TimingUtil::adcFlag && x < steps * numAdcMeasuresPerDacStep) {
         ADCBoard::commsController.beginTransaction();
         if (steps <= 1) {
           for (int i = 0; i < numAdcChannels; i++) {
@@ -449,14 +461,14 @@ class God {
             packets[i] = {static_cast<uint8_t>(adcChannels[i]),
                           static_cast<uint32_t>(x), v};
           }
-          m4SendVoltage(packets, numAdcChannels);
+          // m4SendVoltage(packets, numAdcChannels);
           delete[] packets;
           x++;
         }
         ADCBoard::commsController.endTransaction();
         TimingUtil::adcFlag = false;
       }
-      if (TimingUtil::dacFlag && steps < numDacSteps + 1) {
+      if (TimingUtil::dacFlag && steps < totalSteps) {
         DACChannel::commsController.beginTransaction();
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
@@ -473,6 +485,7 @@ class God {
         DACChannel::commsController.endTransaction();
         steps++;
         TimingUtil::dacFlag = false;
+        TIM8->CNT = 0;
       }
     }
 
