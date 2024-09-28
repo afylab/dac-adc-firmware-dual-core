@@ -287,7 +287,11 @@ class ADCBoard {
 
   // chop = true
   float setConversionTime(int channel, float time_us) {
-    bool moreThanOneChannelActive = isMoreThanOneChannelActive();
+    return setConversionTimeFloat(channel, time_us, isMoreThanOneChannelActive());
+  }
+
+  // chop = true
+  float setConversionTimeFloat(int channel, float time_us, bool moreThanOneChannelActive) {
     return setConversionTime(
         channel, true,
         calculateFilterWord(time_us, true, moreThanOneChannelActive),

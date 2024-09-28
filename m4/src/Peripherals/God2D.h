@@ -170,7 +170,7 @@ public:
       DACChannel::commsController.beginTransaction();
       for (int i = 0; i < numSlowDacChannels; ++i)
       {
-        DACController::setVoltageNoTransaction(slowDacChannels[i],
+        DACController::setVoltageNoTransactionNoLdac(slowDacChannels[i],
                                                slowVoltSetpoints[i][slowStep]);
       }
       DACController::toggleLdac();
@@ -320,7 +320,7 @@ public:
         {
           for (int i = 0; i < numDacChannels; i++)
           {
-            DACController::setVoltageNoTransaction(dacChannels[i],
+            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
                                                    voltSetpoints[i][0]);
           }
         }
@@ -328,7 +328,7 @@ public:
         {
           for (int i = 0; i < numDacChannels; i++)
           {
-            DACController::setVoltageNoTransaction(dacChannels[i],
+            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
                                                    voltSetpoints[i][steps - 1]);
           }
         }
@@ -518,7 +518,7 @@ public:
       DACChannel::commsController.beginTransaction();
       for (int i = 0; i < numSlowDacChannels; ++i)
       {
-        DACController::setVoltageNoTransaction(slowDacChannels[i],
+        DACController::setVoltageNoTransactionNoLdac(slowDacChannels[i],
                                                slowVoltSetpoints[i][slowStep]);
       }
       DACController::toggleLdac();
@@ -674,7 +674,7 @@ public:
         {
           for (int i = 0; i < numDacChannels; i++)
           {
-            DACController::setVoltageNoTransaction(dacChannels[i],
+            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
                                                    voltSetpoints[i][0]);
           }
         }
@@ -682,7 +682,7 @@ public:
         {
           for (int i = 0; i < numDacChannels; i++)
           {
-            DACController::setVoltageNoTransaction(dacChannels[i],
+            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
                                                    voltSetpoints[i][steps - 1]);
           }
         }

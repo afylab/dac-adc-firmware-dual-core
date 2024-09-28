@@ -207,12 +207,25 @@ class ADCController {
     return OperationResult::Success(String(setpoint, 9));
   }
 
+  static float presetConversionTime(int adc_channel, int time_us, bool isMoreThanOneChannelActive) {
+    return adc_boards[getBoardIndexFromGlobalIndex(adc_channel)].setConversionTimeFloat(
+            getChannelIndexFromGlobalIndex(adc_channel), time_us, isMoreThanOneChannelActive);
+  }
+
   static float getConversionTimeFloat(int adc_channel) {
     if (!isChannelIndexValid(adc_channel)) {
       return -1.0;
     }
     return adc_boards[getBoardIndexFromGlobalIndex(adc_channel)].getConversionTime(
         getChannelIndexFromGlobalIndex(adc_channel));
+  }
+
+  static float getConversionTimeFloat(int adc_channel, bool isMoreThanOneChannelActive) {
+    if (!isChannelIndexValid(adc_channel)) {
+      return -1.0;
+    }
+    return adc_boards[getBoardIndexFromGlobalIndex(adc_channel)].getConversionTime(
+        getChannelIndexFromGlobalIndex(adc_channel), isMoreThanOneChannelActive);
   }
 
   static OperationResult getConversionTime(int adc_channel) {

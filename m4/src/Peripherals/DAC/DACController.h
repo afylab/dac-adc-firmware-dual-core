@@ -79,7 +79,7 @@ class DACController {
                                     " UPDATED TO " + String(v, 6) + " V");
   }
 
-  inline static void setVoltageNoTransaction(int channel_index, float voltage) {
+  inline static void setVoltageNoTransactionNoLdac(int channel_index, float voltage) {
     if (!isChannelIndexValid(channel_index)) {
       return;
     }
@@ -89,7 +89,7 @@ class DACController {
       return;
     }
 
-    dac_channel.setVoltageNoTransaction(voltage);
+    dac_channel.setVoltageNoTransactionNoLdac(voltage);
   }
 
   inline static void toggleLdac() {

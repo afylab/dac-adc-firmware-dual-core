@@ -69,7 +69,7 @@ class DACChannel {
     return gain_error * (threeByteToVoltage(b1, b2, b3) + offset_error);
   }
 
-  void setVoltageNoTransaction(float v) {
+  void setVoltageNoTransactionNoLdac(float v) {
     byte b1;
     byte b2;
     byte b3;
