@@ -129,20 +129,18 @@ class DACChannel {
 
   float getVoltage() {
     byte bytesToSend[3] = {144, 0, 0};
+    byte data[3];
     commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
     commsController.transfer(bytesToSend, 3);
     digitalWrite(cs_pin, HIGH);
     delayMicroseconds(2);
     digitalWrite(cs_pin, LOW);
-    byte b1 = commsController.receiveByte();
-    byte b2 = commsController.receiveByte();
-    byte b3 = commsController.receiveByte();
+    commsController.transfer(data, 3);
     digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
 
-    // Assuming threeByteToVoltage function exists and works correctly
-    float voltage = threeByteToVoltage(b1, b2, b3);
+    float voltage = threeByteToVoltage(data[0], data[1], data[2]);
     return gain_error * (voltage + offset_error);
   }
 

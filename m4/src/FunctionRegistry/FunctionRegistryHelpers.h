@@ -17,8 +17,6 @@ template <typename Function>
 void registerMemberFunction(Function function, const String& commandName) {
   using Traits = FunctionTraits<Function>;
   constexpr size_t argCountSizeT = Traits::arity;
-  static_assert(argCountSizeT <= 8,
-                "Too many arguments. Maximum supported is 8.");
   constexpr int argCount = static_cast<int>(
       argCountSizeT);  // Ensure it matches FunctionRegistry's expected type
 

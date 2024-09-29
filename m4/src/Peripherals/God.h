@@ -364,9 +364,9 @@ class God {
   }
 
   // args: numDacChannels, numAdcChannels, numDacSteps,
-  // numAdcMeasuresPerDacStep, numAdcAverages, adcConversionTime_us, {for each
-  // dac channel: dac channel, v0_1, vf_1, v0_2, vf_2}, {for each adc channel:
-  // adc channel}
+  // numAdcMeasuresPerDacStep, numAdcAverages, numAdcConversionSkips,
+  // adcConversionTime_us, {for each dac channel: dac channel, v0_1, vf_1, v0_2,
+  // vf_2}, {for each adc channel: adc channel}
   static OperationResult boxcarAverageRamp(const std::vector<float>& args) {
     size_t currentIndex = 0;
 
@@ -376,6 +376,7 @@ class God {
     int numDacSteps = static_cast<int>(args[currentIndex++]);
     int numAdcMeasuresPerDacStep = static_cast<int>(args[currentIndex++]);
     int numAdcAverages = static_cast<int>(args[currentIndex++]);
+    int numAdcConversionSkips = static_cast<int>(args[currentIndex++]);
     uint32_t adcConversionTime_us = static_cast<uint32_t>(args[currentIndex++]);
 
     int* dacChannels = new int[numDacChannels];
@@ -405,8 +406,8 @@ class God {
                                           numAdcChannels > 1);
     }
 
-    uint32_t dacPeriod_us = numAdcMeasuresPerDacStep * actualConversionTime_us +
-                            10 + 5 + actualConversionTime_us;
+    uint32_t dacPeriod_us = (numAdcMeasuresPerDacStep + numAdcConversionSkips) *
+                                actualConversionTime_us + 500;
 
     setStopFlag(false);
 
@@ -431,7 +432,7 @@ class God {
     int x = 0;
     int total_data_size =
         numDacSteps * numAdcMeasuresPerDacStep * numAdcAverages;
-    bool justSetDac = false;
+    int adcGetsSinceLastDacSet = 0;
 
     // for debugging:
     float dacPeriodFloat = static_cast<float>(dacPeriod_us);
@@ -453,21 +454,19 @@ class God {
             ADCController::getVoltageDataNoTransaction(adcChannels[i]);
           }
         } else {
-          if (justSetDac) {
-            justSetDac = false;
-          } else {
+          if (adcGetsSinceLastDacSet >= numAdcConversionSkips) {
             VoltagePacket* packets = new VoltagePacket[numAdcChannels];
             for (int i = 0; i < numAdcChannels; i++) {
               float v =
                   ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-              packets[i] = {static_cast<uint8_t>(adcChannels[i]), static_cast<uint32_t>(x),
-                            v};
+              packets[i] = {static_cast<uint8_t>(adcChannels[i]),
+                            static_cast<uint32_t>(x), v};
             }
             // m4SendVoltage(packets, numAdcChannels);
             delete[] packets;
-                      x++;
-
+            x++;
           }
+          adcGetsSinceLastDacSet++;
         }
         ADCBoard::commsController.endTransaction();
         TimingUtil::adcFlag = false;
@@ -489,7 +488,7 @@ class God {
         DACChannel::commsController.endTransaction();
         steps++;
         TimingUtil::dacFlag = false;
-        justSetDac = true;
+        adcGetsSinceLastDacSet = 0;
         TIM8->CNT = 0;
       }
     }
