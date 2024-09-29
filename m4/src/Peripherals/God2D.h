@@ -298,13 +298,12 @@ public:
         }
         else
         {
-          VoltagePacket *packets = new VoltagePacket[numAdcChannels];
+          float *packets = new float[numAdcChannels];
           for (int i = 0; i < numAdcChannels; i++)
           {
             float v =
                 ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-            packets[i] = {static_cast<uint8_t>(adcChannels[i]),
-                          static_cast<uint32_t>(x), v};
+            packets[i] = v;
           }
           m4SendVoltage(packets, numAdcChannels);
           delete[] packets;
@@ -647,7 +646,7 @@ public:
         }
         else
         {
-          VoltagePacket *packets = new VoltagePacket[numAdcChannels];
+          float *packets = new float[numAdcChannels];
           for (int i = 0; i < numAdcChannels; i++)
           {
             float total = 0.0;
@@ -657,8 +656,7 @@ public:
                   ADCController::getVoltageDataNoTransaction(adcChannels[i]);
             }
             float v = total / numAdcAverages;
-            packets[i] = {static_cast<uint8_t>(adcChannels[i]),
-                          static_cast<uint32_t>(x), v};
+            packets[i] = v;
           }
           m4SendVoltage(packets, numAdcChannels);
           delete[] packets;

@@ -141,7 +141,7 @@ static bool floatBufferHasMessage(FloatCircularBuffer* buffer) {
 
 // Voltage buffer operations
 static bool voltageBufferSend(VoltageCircularBuffer* buffer,
-                              const VoltagePacket* data, size_t length) {
+                              const float* data, size_t length) {
   if (length > MAX_MESSAGE_SIZE) return false;
 
   uint32_t available_space =
@@ -158,7 +158,7 @@ static bool voltageBufferSend(VoltageCircularBuffer* buffer,
 }
 
 static bool voltageBufferReceive(VoltageCircularBuffer* buffer,
-                                 VoltagePacket* data, size_t& length) {
+                                 float* data, size_t& length) {
   if (buffer->read_index == buffer->write_index) {
     length = 0;
     return false;
@@ -210,12 +210,12 @@ bool m4HasFloatMessage() {
 }
 
 // M4 voltage functions
-bool m4SendVoltage(const VoltagePacket* data, size_t length) {
+bool m4SendVoltage(const float* data, size_t length) {
   return voltageBufferSend(&shared_memory->m4_to_m7_voltage_buffer, data,
                            length);
 }
 
-bool m4ReceiveVoltage(VoltagePacket* data, size_t& length) {
+bool m4ReceiveVoltage(float* data, size_t& length) {
   return voltageBufferReceive(&shared_memory->m7_to_m4_voltage_buffer, data,
                               length);
 }
@@ -252,12 +252,12 @@ bool m7HasFloatMessage() {
 }
 
 // M7 voltage functions
-bool m7SendVoltage(const VoltagePacket* data, size_t length) {
+bool m7SendVoltage(const float* data, size_t length) {
   return voltageBufferSend(&shared_memory->m7_to_m4_voltage_buffer, data,
                            length);
 }
 
-bool m7ReceiveVoltage(VoltagePacket* data, size_t& length) {
+bool m7ReceiveVoltage(float* data, size_t& length) {
   return voltageBufferReceive(&shared_memory->m4_to_m7_voltage_buffer, data,
                               length);
 }

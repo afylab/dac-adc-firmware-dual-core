@@ -3,7 +3,7 @@
 
 #define CHAR_BUFFER_SIZE 1024
 #define FLOAT_BUFFER_SIZE 256
-#define VOLTAGE_BUFFER_SIZE 512
+#define VOLTAGE_BUFFER_SIZE 5120
 #define MAX_MESSAGE_SIZE 256
 
 struct CharCircularBuffer {
@@ -18,14 +18,8 @@ struct FloatCircularBuffer {
   volatile uint32_t write_index;
 };
 
-struct VoltagePacket {
-  uint8_t adc_id;
-  uint32_t setnum;
-  float voltage;
-};
-
 struct VoltageCircularBuffer {
-  VoltagePacket buffer[VOLTAGE_BUFFER_SIZE];
+  float buffer[VOLTAGE_BUFFER_SIZE];
   volatile uint32_t read_index;
   volatile uint32_t write_index;
 };
@@ -56,8 +50,8 @@ bool m4ReceiveFloat(float* data, size_t& length);
 bool m4HasFloatMessage();
 
 // M4 voltage functions
-bool m4SendVoltage(const VoltagePacket* data, size_t length);
-bool m4ReceiveVoltage(VoltagePacket* data, size_t& length);
+bool m4SendVoltage(const float* data, size_t length);
+bool m4ReceiveVoltage(float* data, size_t& length);
 bool m4HasVoltageMessage();
 
 // M7 char functions
@@ -71,8 +65,8 @@ bool m7ReceiveFloat(float* data, size_t& length);
 bool m7HasFloatMessage();
 
 // M7 voltage functions
-bool m7SendVoltage(const VoltagePacket* data, size_t length);
-bool m7ReceiveVoltage(VoltagePacket* data, size_t& length);
+bool m7SendVoltage(const float* data, size_t length);
+bool m7ReceiveVoltage(float* data, size_t& length);
 bool m7HasVoltageMessage();
 
 void setStopFlag(bool value);

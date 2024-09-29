@@ -124,7 +124,7 @@ void loop()
   }
   if (m7HasVoltageMessage())
   {
-    VoltagePacket response[VOLTAGE_BUFFER_SIZE];
+    float response[VOLTAGE_BUFFER_SIZE];
     size_t size;
     if (m7ReceiveVoltage(response, size))
     {
@@ -137,7 +137,7 @@ void loop()
         // Serial.print(", ");
         // Serial.print(response[i].voltage, 8);
         binaryFloat send;
-        send.floatingPoint = response[i].voltage;
+        send.floatingPoint = response[i];
         Serial.write(send.binary, 4);
         // Serial.println("V");
       }
