@@ -111,7 +111,7 @@ class ADCBoard {
 
   // return ADC status register, pg. 16
   uint8_t getADCStatus() {
-    byte* data = new byte[2];
+    byte data[2];
     data[0] = READ | ADDR_ADCSTATUS;
 
     commsController.beginTransaction();
@@ -119,11 +119,12 @@ class ADCBoard {
     commsController.transfer(data, 2);
     digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
+    float status = data[1];
     return data[1];
   }
 
   void channelSetup(int adc_channel, uint8_t flags) {
-    byte* data = new byte[2];
+    byte data[2];
     data[0] = WRITE | ADDR_CHANNELSETUP(adc_channel);
     data[1] = flags;
     commsController.beginTransaction();
@@ -135,7 +136,7 @@ class ADCBoard {
 
   // tells the ADC to start a single conversion on the passed channel
   void startSingleConversion(int adc_channel) {
-    byte* data = new byte[2];
+    byte data[2];
     // setup communication register for writing operation to the mode register
     data[0] = WRITE | ADDR_MODE(adc_channel);
     // setup mode register
@@ -175,7 +176,7 @@ class ADCBoard {
     byte chop_byte = chop == 1 ? 0x80 : 0x00;
     byte send = chop_byte | static_cast<byte>(fw);
 
-    byte* data = new byte[2];
+    byte data[2];
     data[0] = WRITE | ADDR_CHANNELCONVERSIONTIME(adc_channel);
     data[1] = send;
 
@@ -191,7 +192,7 @@ class ADCBoard {
 
     // setup communication register for reading channel data
     data_array = READ | ADDR_CHANNELDATA(adc_channel);
-    byte* data = new byte[4];
+    byte data[4];
     data[0] = data_array;
 
     // write to the communication register
@@ -217,7 +218,7 @@ class ADCBoard {
     // setup communication register for reading channel data
     data_array = READ | ADDR_CHANNELDATA(adc_channel);
 
-    byte* data = new byte[4];
+    byte data[4];
     data[0] = data_array;
 
     // write to the communication register
@@ -249,7 +250,7 @@ class ADCBoard {
   }
 
   void idleMode(int adc_channel) {
-    byte* data = new byte[2];
+    byte data[2];
     data[0] = WRITE | ADDR_MODE(adc_channel);
     data[1] = IDLE_MODE;
     commsController.beginTransaction();
@@ -320,7 +321,7 @@ class ADCBoard {
     byte chop_byte = chop ? 0b10000000 : 0b00000000;
     byte send = chop_byte | fw;
 
-    byte* data = new byte[2];
+    byte data[2];
     data[0] = WRITE | ADDR_CHANNELCONVERSIONTIME(channel);
     data[1] = send;
 
@@ -342,7 +343,7 @@ class ADCBoard {
   }
 
   float getConversionTime(int channel, bool moreThanOneChannelActive) {
-    byte* data = new byte[2];
+    byte data[2];
     data[0] = READ | ADDR_CHANNELCONVERSIONTIME(channel);
     commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
@@ -401,7 +402,7 @@ class ADCBoard {
   }
 
   void zeroScaleSelfCalibration() {
-    byte* data = new byte[2];
+    byte data[2];
     data[0] = WRITE | ADDR_MODE(0); // channel is zero but this is system-wide
     data[1] = ZERO_SCALE_SELF_CAL_MODE;
     commsController.beginTransaction();
@@ -413,7 +414,7 @@ class ADCBoard {
   }
 
   void zeroScaleChannelSystemSelfCalibration(int channel) {
-    byte* data = new byte[2];
+    byte data[2];
     data[0] = WRITE | ADDR_MODE(channel);
     data[1] = CH_ZERO_SCALE_SYS_CAL_MODE;
     commsController.beginTransaction();
@@ -425,7 +426,7 @@ class ADCBoard {
   }
 
   void fullScaleChannelSystemSelfCalibration(int channel) {
-    byte* data = new byte[2];
+    byte data[2];
     data[0] = WRITE | ADDR_MODE(channel);
     data[1] = CH_FULL_SCALE_SYS_CAL_MODE;
     commsController.beginTransaction();
