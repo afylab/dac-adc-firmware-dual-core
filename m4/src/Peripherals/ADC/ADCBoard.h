@@ -119,7 +119,6 @@ class ADCBoard {
     commsController.transfer(data, 2);
     digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();
-    float status = data[1];
     return data[1];
   }
 
@@ -188,17 +187,11 @@ class ADCBoard {
   }
 
   uint32_t getConversionData(int adc_channel) {
-    byte data_array;
-
-    // setup communication register for reading channel data
-    data_array = READ | ADDR_CHANNELDATA(adc_channel);
     byte data[4];
-    data[0] = data_array;
+    data[0] = READ | ADDR_CHANNELDATA(adc_channel);
 
-    // write to the communication register
     commsController.beginTransaction();
     digitalWrite(cs_pin, LOW);
-    // read upper and lower bytes of channel data register (16 bit mode)
     commsController.transfer(data, 4);
     digitalWrite(cs_pin, HIGH);
     commsController.endTransaction();

@@ -3,7 +3,7 @@
 
 #define CHAR_BUFFER_SIZE 1024
 #define FLOAT_BUFFER_SIZE 256
-#define VOLTAGE_BUFFER_SIZE 5120
+#define VOLTAGE_BUFFER_SIZE 1024
 #define MAX_MESSAGE_SIZE 256
 
 struct CharCircularBuffer {
