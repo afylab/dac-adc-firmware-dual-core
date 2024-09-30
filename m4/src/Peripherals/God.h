@@ -109,13 +109,13 @@ class God {
     //   }
     // }
 
-    float *voltageStepSize = new float[numDacChannels];
+    float* voltageStepSize = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
       voltageStepSize[i] = (dacVfs[i] - dacV0s[i]) / (numSteps - 1);
     }
 
-    float *previousVoltageSet = new float[numDacChannels];
+    float* previousVoltageSet = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
       previousVoltageSet[i] = dacV0s[i];
@@ -161,8 +161,8 @@ class God {
           for (int i = 0; i < numDacChannels; i++) {
             float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
             previousVoltageSet[i] = currentVoltage;
-            DACController::setVoltageNoTransactionNoLdac(
-                dacChannels[i], currentVoltage);
+            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
+                                                         currentVoltage);
           }
         }
         DACController::toggleLdac();
@@ -288,13 +288,13 @@ class God {
     //   }
     // }
 
-    float *voltageStepSize = new float[numDacChannels];
+    float* voltageStepSize = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
       voltageStepSize[i] = (dacVfs[i] - dacV0s[i]) / (numSteps - 1);
     }
 
-    float *previousVoltageSet = new float[numDacChannels];
+    float* previousVoltageSet = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
       previousVoltageSet[i] = dacV0s[i];
@@ -346,8 +346,8 @@ class God {
           for (int i = 0; i < numDacChannels; i++) {
             float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
             previousVoltageSet[i] = currentVoltage;
-            DACController::setVoltageNoTransactionNoLdac(
-                dacChannels[i], currentVoltage);
+            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
+                                                         currentVoltage);
           }
         }
         DACController::toggleLdac();
@@ -411,6 +411,8 @@ class God {
     int numDacSteps = static_cast<int>(args[currentIndex++]);
     int numAdcMeasuresPerDacStep = static_cast<int>(args[currentIndex++]);
     int numAdcAverages = static_cast<int>(args[currentIndex++]);
+    numAdcAverages =
+        1;  // TODO: remove this line when averaging is implemented.
     int numAdcConversionSkips = static_cast<int>(args[currentIndex++]);
     uint32_t adcConversionTime_us = static_cast<uint32_t>(args[currentIndex++]);
 
@@ -442,7 +444,8 @@ class God {
     }
 
     uint32_t dacPeriod_us = (numAdcMeasuresPerDacStep + numAdcConversionSkips) *
-                            actualConversionTime_us + numAdcMeasuresPerDacStep * numAdcChannels * 15;
+                                actualConversionTime_us +
+                            numAdcMeasuresPerDacStep * numAdcChannels * 15;
 
     setStopFlag(false);
 
@@ -462,16 +465,18 @@ class God {
     //   }
     // }
 
-    float *voltageStepSizeLow = new float[numDacChannels];
-    float *voltageStepSizeHigh = new float[numDacChannels];
+    float* voltageStepSizeLow = new float[numDacChannels];
+    float* voltageStepSizeHigh = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
-      voltageStepSizeLow[i] = (dacV0_1[i] - dacVf_1[i]) / (numDacSteps - 1);
-      voltageStepSizeHigh[i] = (dacV0_2[i] - dacVf_2[i]) / (numDacSteps - 1);
+      voltageStepSizeLow[i] =
+          (dacVf_1[i] - dacV0_1[i]) / static_cast<float>(numDacSteps - 1);
+      voltageStepSizeHigh[i] =
+          (dacVf_2[i] - dacV0_2[i]) / static_cast<float>(numDacSteps - 1);
     }
 
-    float *previousVoltageSetLow = new float[numDacChannels];
-    float *previousVoltageSetHigh = new float[numDacChannels];
+    float* previousVoltageSetLow = new float[numDacChannels];
+    float* previousVoltageSetHigh = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
       previousVoltageSetLow[i] = dacV0_1[i];
@@ -525,7 +530,8 @@ class God {
         DACChannel::commsController.beginTransaction();
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
-            DACController::setVoltageNoTransactionNoLdac(dacChannels[i], dacV0_1[i]);
+            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
+                                                         dacV0_1[i]);
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
@@ -534,11 +540,12 @@ class God {
               currentVoltage = previousVoltageSetLow[i] + voltageStepSizeLow[i];
               previousVoltageSetLow[i] = currentVoltage;
             } else {
-              currentVoltage = previousVoltageSetHigh[i] + voltageStepSizeHigh[i];;
+              currentVoltage =
+                  previousVoltageSetHigh[i] + voltageStepSizeHigh[i];
               previousVoltageSetHigh[i] = currentVoltage;
             }
-            DACController::setVoltageNoTransactionNoLdac(
-                dacChannels[i], currentVoltage);
+            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
+                                                         currentVoltage);
           }
         }
         DACController::toggleLdac();
@@ -571,214 +578,6 @@ class God {
     //   delete[] voltSetpoints[i];
     // }
     // delete[] voltSetpoints;
-
-    if (getStopFlag()) {
-      setStopFlag(false);
-      return OperationResult::Failure("RAMPING_STOPPED");
-    }
-
-    return OperationResult::Success();
-  }
-
-  // args: numDacChannels, numAdcChannels, numDacSteps,
-  // numAdcMeasuresPerDacStep, numAdcAverages, numAdcConversionSkips,
-  // adcConversionTime_us, {for each dac channel: dac channel, v0_1, vf_1, v0_2,
-  // vf_2}, {for each adc channel: adc channel}
-  static OperationResult boxcarAverageRamp(std::vector<float> args) {
-    size_t currentIndex = 0;
-
-    // Parse initial parameters
-    int numDacChannels = static_cast<int>(args[currentIndex++]);
-    int numAdcChannels = static_cast<int>(args[currentIndex++]);
-    int numDacSteps = static_cast<int>(args[currentIndex++]);
-    int numAdcMeasuresPerDacStep = static_cast<int>(args[currentIndex++]);
-    int numAdcAverages = static_cast<int>(args[currentIndex++]);
-    int numAdcConversionSkips = static_cast<int>(args[currentIndex++]);
-    uint32_t adcConversionTime_us = static_cast<uint32_t>(args[currentIndex++]);
-
-    int* dacChannels = new int[numDacChannels];
-    float* dacV0_1 = new float[numDacChannels];
-    float* dacVf_1 = new float[numDacChannels];
-    float* dacV0_2 = new float[numDacChannels];
-    float* dacVf_2 = new float[numDacChannels];
-
-    for (int i = 0; i < numDacChannels; ++i) {
-      dacChannels[i] = static_cast<int>(args[currentIndex++]);
-      dacV0_1[i] = args[currentIndex++];
-      dacVf_1[i] = args[currentIndex++];
-      dacV0_2[i] = args[currentIndex++];
-      dacVf_2[i] = args[currentIndex++];
-    }
-
-    int* adcChannels = new int[numAdcChannels];
-
-    for (int i = 0; i < numAdcChannels; ++i) {
-      adcChannels[i] = static_cast<int>(args[currentIndex++]);
-    }
-
-    uint32_t actualConversionTime_us = ADCController::presetConversionTime(
-        adcChannels[0], adcConversionTime_us, numAdcChannels > 1);
-    for (int i = 1; i < numAdcChannels; ++i) {
-      ADCController::presetConversionTime(adcChannels[i], adcConversionTime_us,
-                                          numAdcChannels > 1);
-    }
-
-    uint32_t dacPeriod_us = (numAdcMeasuresPerDacStep + numAdcConversionSkips) *
-                                actualConversionTime_us +
-                            500;
-
-    setStopFlag(false);
-
-    // Calculate voltages
-    float** voltSetpoints = new float*[numDacChannels];
-
-    for (int i = 0; i < numDacChannels; i++) {
-      voltSetpoints[i] = new float[numDacSteps * numAdcAverages];
-      int l = 0;
-      for (int j = 0; j < numDacSteps; j++) {
-        for (int k = 0; k < numAdcAverages; k++) {
-          float* dacV0 = l % 2 ? dacV0_1 : dacV0_2;
-          float* dacVf = l % 2 ? dacVf_1 : dacVf_2;
-          voltSetpoints[i][l++] =
-              dacV0[i] + (dacVf[i] - dacV0[i]) * j / (numDacSteps - 1);
-        }
-      }
-    }
-
-    int steps = 0;
-    int totalSteps = numDacSteps * numAdcAverages + 1;
-    int x = 0;
-    int total_data_size =
-        numDacSteps * numAdcAverages * numAdcMeasuresPerDacStep;
-    int adcGetsSinceLastDacSet = 0;
-
-    // For averaging
-    float* adcSums = new float[numAdcChannels]();
-    float* adcAverageHigh = new float[numAdcChannels]();
-    float* adcAverageLow = new float[numAdcChannels]();
-    bool haveHighAverage = false;
-    bool haveLowAverage = false;
-    int numReadingsCollected = 0;
-    bool isHighSet = false;
-
-    // For debugging:
-    // float dacPeriodFloat = static_cast<float>(dacPeriod_us);
-    // m4SendFloat(&dacPeriodFloat, 1);
-    // float adcPeriodFloat = static_cast<float>(actualConversionTime_us);
-    // m4SendFloat(&adcPeriodFloat, 1);
-
-    for (int i = 0; i < numAdcChannels; ++i) {
-      ADCController::startContinuousConversion(adcChannels[i]);
-    }
-
-    TimingUtil::setupTimersTimeSeries(dacPeriod_us, actualConversionTime_us);
-
-    while (x < total_data_size && !getStopFlag()) {
-      if (TimingUtil::adcFlag && x < steps * numAdcMeasuresPerDacStep) {
-        ADCBoard::commsController.beginTransaction();
-        if (steps <= 1) {
-          for (int i = 0; i < numAdcChannels; i++) {
-            ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-          }
-        } else {
-          if (adcGetsSinceLastDacSet >= numAdcConversionSkips) {
-            // Collect ADC readings
-            for (int i = 0; i < numAdcChannels; i++) {
-              float v =
-                  ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-              adcSums[i] += v;
-            }
-            numReadingsCollected++;
-            x++;
-            if (numReadingsCollected == numAdcMeasuresPerDacStep) {
-              // We have collected all readings for the current DAC setpoint
-              // Compute average
-              for (int i = 0; i < numAdcChannels; i++) {
-                float avg = adcSums[i] / numAdcMeasuresPerDacStep;
-                if (isHighSet) {
-                  adcAverageHigh[i] = avg;
-                  haveHighAverage = true;
-                } else {
-                  adcAverageLow[i] = avg;
-                  haveLowAverage = true;
-                }
-                adcSums[i] = 0;  // Reset sums for next set
-              }
-              numReadingsCollected = 0;
-
-              // If we have both high and low averages, compute difference and
-              // send
-              if (haveHighAverage && haveLowAverage) {
-                float* packets = new float[numAdcChannels];
-                for (int i = 0; i < numAdcChannels; i++) {
-                  float diff = adcAverageHigh[i] - adcAverageLow[i];
-                  packets[i] = diff; //{diff};
-                }
-                // m4SendVoltage(packets, numAdcChannels);
-                m4SendFloat(packets, numAdcChannels);
-                delete[] packets;
-
-                haveHighAverage = false;
-                haveLowAverage = false;
-              }
-            }
-          }
-          adcGetsSinceLastDacSet++;
-        }
-        ADCBoard::commsController.endTransaction();
-        TimingUtil::adcFlag = false;
-      }
-      if (TimingUtil::dacFlag && steps < totalSteps) {
-        DACChannel::commsController.beginTransaction();
-        if (steps == 0) {
-          for (int i = 0; i < numDacChannels; i++) {
-            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
-                                                         voltSetpoints[i][0]);
-          }
-        } else {
-          for (int i = 0; i < numDacChannels; i++) {
-            DACController::setVoltageNoTransactionNoLdac(
-                dacChannels[i], voltSetpoints[i][steps - 1]);
-          }
-        }
-        DACController::toggleLdac();
-        steps++;
-        isHighSet = ((steps - 1) % 2 == 1);  // Update high/low set indicator
-
-        // Reset sums and counters for next DAC setpoint
-        for (int i = 0; i < numAdcChannels; i++) {
-          adcSums[i] = 0;
-        }
-        numReadingsCollected = 0;
-
-        DACChannel::commsController.endTransaction();
-        TimingUtil::dacFlag = false;
-        adcGetsSinceLastDacSet = 0;
-        TIM8->CNT = 0;
-      }
-    }
-
-    TimingUtil::disableDacInterrupt();
-    TimingUtil::disableAdcInterrupt();
-
-    for (int i = 0; i < numAdcChannels; i++) {
-      ADCController::idleMode(adcChannels[i]);
-    }
-
-    // Clean up
-    delete[] adcSums;
-    delete[] adcAverageHigh;
-    delete[] adcAverageLow;
-    delete[] dacChannels;
-    delete[] dacV0_1;
-    delete[] dacVf_1;
-    delete[] dacV0_2;
-    delete[] dacVf_2;
-    delete[] adcChannels;
-    for (int i = 0; i < numDacChannels; i++) {
-      delete[] voltSetpoints[i];
-    }
-    delete[] voltSetpoints;
 
     if (getStopFlag()) {
       setStopFlag(false);
