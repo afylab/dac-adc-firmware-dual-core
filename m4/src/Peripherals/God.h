@@ -99,14 +99,26 @@ class God {
 
     const int saved_data_size = numSteps * dac_interval_us / adc_interval_us;
 
-    float** voltSetpoints = new float*[numDacChannels];
+    // float** voltSetpoints = new float*[numDacChannels];
+
+    // for (int i = 0; i < numDacChannels; i++) {
+    //   voltSetpoints[i] = new float[numSteps];
+    //   for (int j = 0; j < numSteps; j++) {
+    //     voltSetpoints[i][j] =
+    //         dacV0s[i] + (dacVfs[i] - dacV0s[i]) * j / (numSteps - 1);
+    //   }
+    // }
+
+    float *voltageStepSize = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
-      voltSetpoints[i] = new float[numSteps];
-      for (int j = 0; j < numSteps; j++) {
-        voltSetpoints[i][j] =
-            dacV0s[i] + (dacVfs[i] - dacV0s[i]) * j / (numSteps - 1);
-      }
+      voltageStepSize[i] = (dacVfs[i] - dacV0s[i]) / (numSteps - 1);
+    }
+
+    float *previousVoltageSet = new float[numDacChannels];
+
+    for (int i = 0; i < numDacChannels; i++) {
+      previousVoltageSet[i] = dacV0s[i];
     }
 
     TimingUtil::setupTimersTimeSeries(dac_interval_us, adc_interval_us);
@@ -143,12 +155,14 @@ class God {
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
-                                                         voltSetpoints[i][0]);
+                                                         dacV0s[i]);
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
+            float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
+            previousVoltageSet[i] = currentVoltage;
             DACController::setVoltageNoTransactionNoLdac(
-                dacChannels[i], voltSetpoints[i][steps - 1]);
+                dacChannels[i], currentVoltage);
           }
         }
         DACController::toggleLdac();
@@ -165,10 +179,13 @@ class God {
       ADCController::idleMode(adcChannels[i]);
     }
 
-    for (int i = 0; i < numDacChannels; i++) {
-      delete[] voltSetpoints[i];
-    }
-    delete[] voltSetpoints;
+    delete[] voltageStepSize;
+    delete[] previousVoltageSet;
+
+    // for (int i = 0; i < numDacChannels; i++) {
+    //   delete[] voltSetpoints[i];
+    // }
+    // delete[] voltSetpoints;
 
     if (getStopFlag()) {
       setStopFlag(false);
@@ -261,14 +278,26 @@ class God {
     int steps = 0;
     int x = 0;
 
-    float** voltSetpoints = new float*[numDacChannels];
+    // float** voltSetpoints = new float*[numDacChannels];
+
+    // for (int i = 0; i < numDacChannels; i++) {
+    //   voltSetpoints[i] = new float[numSteps];
+    //   for (int j = 0; j < numSteps; j++) {
+    //     voltSetpoints[i][j] =
+    //         dacV0s[i] + (dacVfs[i] - dacV0s[i]) * j / (numSteps - 1);
+    //   }
+    // }
+
+    float *voltageStepSize = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
-      voltSetpoints[i] = new float[numSteps];
-      for (int j = 0; j < numSteps; j++) {
-        voltSetpoints[i][j] =
-            dacV0s[i] + (dacVfs[i] - dacV0s[i]) * j / (numSteps - 1);
-      }
+      voltageStepSize[i] = (dacVfs[i] - dacV0s[i]) / (numSteps - 1);
+    }
+
+    float *previousVoltageSet = new float[numDacChannels];
+
+    for (int i = 0; i < numDacChannels; i++) {
+      previousVoltageSet[i] = dacV0s[i];
     }
 
     // Set up timers with the same period but phase shifted
@@ -311,12 +340,14 @@ class God {
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
-                                                         voltSetpoints[i][0]);
+                                                         dacV0s[i]);
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
+            float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
+            previousVoltageSet[i] = currentVoltage;
             DACController::setVoltageNoTransactionNoLdac(
-                dacChannels[i], voltSetpoints[i][steps - 1]);
+                dacChannels[i], currentVoltage);
           }
         }
         DACController::toggleLdac();
@@ -333,10 +364,13 @@ class God {
       ADCController::idleMode(adcChannels[i]);
     }
 
-    for (int i = 0; i < numDacChannels; i++) {
-      delete[] voltSetpoints[i];
-    }
-    delete[] voltSetpoints;
+    delete[] voltageStepSize;
+    delete[] previousVoltageSet;
+
+    // for (int i = 0; i < numDacChannels; i++) {
+    //   delete[] voltSetpoints[i];
+    // }
+    // delete[] voltSetpoints;
 
     if (getStopFlag()) {
       setStopFlag(false);
@@ -408,24 +442,40 @@ class God {
     }
 
     uint32_t dacPeriod_us = (numAdcMeasuresPerDacStep + numAdcConversionSkips) *
-                            actualConversionTime_us;
+                            actualConversionTime_us + numAdcMeasuresPerDacStep * numAdcChannels * 15;
 
     setStopFlag(false);
 
     // calculate voltages
-    float** voltSetpoints = new float*[numDacChannels];
+    // float** voltSetpoints = new float*[numDacChannels];
+
+    // for (int i = 0; i < numDacChannels; i++) {
+    //   voltSetpoints[i] = new float[numDacSteps * numAdcAverages];
+    //   int l = 0;
+    //   for (int j = 0; j < numDacSteps; j++) {
+    //     for (int k = 0; k < numAdcAverages; k++) {
+    //       float* dacV0 = l % 2 ? dacV0_1 : dacV0_2;
+    //       float* dacVf = l % 2 ? dacVf_1 : dacVf_2;
+    //       voltSetpoints[i][l++] =
+    //           dacV0[i] + (dacVf[i] - dacV0[i]) * j / (numDacSteps - 1);
+    //     }
+    //   }
+    // }
+
+    float *voltageStepSizeLow = new float[numDacChannels];
+    float *voltageStepSizeHigh = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
-      voltSetpoints[i] = new float[numDacSteps * numAdcAverages];
-      int l = 0;
-      for (int j = 0; j < numDacSteps; j++) {
-        for (int k = 0; k < numAdcAverages; k++) {
-          float* dacV0 = l % 2 ? dacV0_1 : dacV0_2;
-          float* dacVf = l % 2 ? dacVf_1 : dacVf_2;
-          voltSetpoints[i][l++] =
-              dacV0[i] + (dacVf[i] - dacV0[i]) * j / (numDacSteps - 1);
-        }
-      }
+      voltageStepSizeLow[i] = (dacV0_1[i] - dacVf_1[i]) / (numDacSteps - 1);
+      voltageStepSizeHigh[i] = (dacV0_2[i] - dacVf_2[i]) / (numDacSteps - 1);
+    }
+
+    float *previousVoltageSetLow = new float[numDacChannels];
+    float *previousVoltageSetHigh = new float[numDacChannels];
+
+    for (int i = 0; i < numDacChannels; i++) {
+      previousVoltageSetLow[i] = dacV0_1[i];
+      previousVoltageSetHigh[i] = dacV0_2[i];
     }
 
     int steps = 0;
@@ -436,10 +486,10 @@ class God {
     int adcGetsSinceLastDacSet = 0;
 
     // for debugging:
-    float dacPeriodFloat = static_cast<float>(dacPeriod_us);
-    m4SendFloat(&dacPeriodFloat, 1);
-    float adcPeriodFloat = static_cast<float>(actualConversionTime_us);
-    m4SendFloat(&adcPeriodFloat, 1);
+    // float dacPeriodFloat = static_cast<float>(dacPeriod_us);
+    // m4SendFloat(&dacPeriodFloat, 1);
+    // float adcPeriodFloat = static_cast<float>(actualConversionTime_us);
+    // m4SendFloat(&adcPeriodFloat, 1);
 
     for (int i = 0; i < numAdcChannels; ++i) {
       ADCController::startContinuousConversion(adcChannels[i]);
@@ -462,7 +512,7 @@ class God {
                   ADCController::getVoltageDataNoTransaction(adcChannels[i]);
               packets[i] = v;
             }
-            // m4SendVoltage(packets, numAdcChannels);
+            m4SendVoltage(packets, numAdcChannels);
             delete[] packets;
             x++;
           }
@@ -475,13 +525,20 @@ class God {
         DACChannel::commsController.beginTransaction();
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
-            DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
-                                                         voltSetpoints[i][0]);
+            DACController::setVoltageNoTransactionNoLdac(dacChannels[i], dacV0_1[i]);
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
+            float currentVoltage;
+            if (steps % 2 == 0) {
+              currentVoltage = previousVoltageSetLow[i] + voltageStepSizeLow[i];
+              previousVoltageSetLow[i] = currentVoltage;
+            } else {
+              currentVoltage = previousVoltageSetHigh[i] + voltageStepSizeHigh[i];;
+              previousVoltageSetHigh[i] = currentVoltage;
+            }
             DACController::setVoltageNoTransactionNoLdac(
-                dacChannels[i], voltSetpoints[i][steps - 1]);
+                dacChannels[i], currentVoltage);
           }
         }
         DACController::toggleLdac();
@@ -506,10 +563,14 @@ class God {
     delete[] dacV0_2;
     delete[] dacVf_2;
     delete[] adcChannels;
-    for (int i = 0; i < numDacChannels; i++) {
-      delete[] voltSetpoints[i];
-    }
-    delete[] voltSetpoints;
+    delete[] voltageStepSizeLow;
+    delete[] previousVoltageSetLow;
+    delete[] voltageStepSizeHigh;
+    delete[] previousVoltageSetHigh;
+    // for (int i = 0; i < numDacChannels; i++) {
+    //   delete[] voltSetpoints[i];
+    // }
+    // delete[] voltSetpoints;
 
     if (getStopFlag()) {
       setStopFlag(false);
