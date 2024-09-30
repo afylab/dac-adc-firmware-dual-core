@@ -19,7 +19,6 @@ class God {
     registerMemberFunctionVector(dacLedBufferRampWrapper,
                                  "DAC_LED_BUFFER_RAMP");
     registerMemberFunction(dacChannelCalibration, "DAC_CH_CAL");
-    registerMemberFunctionVector(boxcarAverageRamp, "BOXCAR_BUFFER_RAMP");
     registerMemberFunctionVector(boxcarAverageRampDebug,
                                  "BOXCAR_BUFFER_RAMP_DEBUG");
   }
