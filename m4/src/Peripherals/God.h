@@ -19,9 +19,9 @@ class God {
     registerMemberFunctionVector(dacLedBufferRampWrapper,
                                  "DAC_LED_BUFFER_RAMP");
     registerMemberFunction(dacChannelCalibration, "DAC_CH_CAL");
-    registerMemberFunctionVector(boxcarAverageRamp, "BOXCAR_AVERAGE_RAMP");
+    registerMemberFunctionVector(boxcarAverageRamp, "BOXCAR_BUFFER_RAMP");
     registerMemberFunctionVector(boxcarAverageRampDebug,
-                                 "BOXCAR_AVERAGE_RAMP_DEBUG");
+                                 "BOXCAR_BUFFER_RAMP_DEBUG");
   }
 
   // args:
@@ -662,10 +662,10 @@ class God {
     bool isHighSet = false;
 
     // For debugging:
-    float dacPeriodFloat = static_cast<float>(dacPeriod_us);
-    m4SendFloat(&dacPeriodFloat, 1);
-    float adcPeriodFloat = static_cast<float>(actualConversionTime_us);
-    m4SendFloat(&adcPeriodFloat, 1);
+    // float dacPeriodFloat = static_cast<float>(dacPeriod_us);
+    // m4SendFloat(&dacPeriodFloat, 1);
+    // float adcPeriodFloat = static_cast<float>(actualConversionTime_us);
+    // m4SendFloat(&adcPeriodFloat, 1);
 
     for (int i = 0; i < numAdcChannels; ++i) {
       ADCController::startContinuousConversion(adcChannels[i]);
