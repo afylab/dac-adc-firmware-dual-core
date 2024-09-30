@@ -90,10 +90,10 @@ struct UserIOHandler {
             }
             break;
           case FunctionRegistry::ExecuteResult::ArgumentError:
-            m4SendChar("Error: Argument error", 22);
+            m4SendChar("FAILURE: Argument error", 24);
             break;
           case FunctionRegistry::ExecuteResult::FunctionNotFound:
-            m4SendChar("Error: Function not found", 26);
+            m4SendChar("FAILURE: Function not found", 28);
             break;
         }
       }
