@@ -410,8 +410,6 @@ class God {
     int numDacSteps = static_cast<int>(args[currentIndex++]);
     int numAdcMeasuresPerDacStep = static_cast<int>(args[currentIndex++]);
     int numAdcAverages = static_cast<int>(args[currentIndex++]);
-    numAdcAverages =
-        1;  // TODO: remove this line when averaging is implemented.
     int numAdcConversionSkips = static_cast<int>(args[currentIndex++]);
     uint32_t adcConversionTime_us = static_cast<uint32_t>(args[currentIndex++]);
 
@@ -442,9 +440,9 @@ class God {
                                           numAdcChannels > 1);
     }
 
-    uint32_t dacPeriod_us = (numAdcMeasuresPerDacStep + numAdcConversionSkips) *
+    uint32_t dacPeriod_us = (numAdcMeasuresPerDacStep + numAdcConversionSkips + 1) *
                                 actualConversionTime_us +
-                            numAdcMeasuresPerDacStep * numAdcChannels * 15;
+                            numAdcMeasuresPerDacStep * numAdcChannels * 5;
 
     setStopFlag(false);
 
@@ -483,10 +481,10 @@ class God {
     }
 
     int steps = 0;
-    int totalSteps = numDacSteps * numAdcAverages + 1;
+    int totalSteps = 2 * numDacSteps * numAdcAverages + 1;
     int x = 0;
     int total_data_size =
-        numDacSteps * numAdcMeasuresPerDacStep * numAdcAverages;
+        2 * numDacSteps * numAdcMeasuresPerDacStep * numAdcAverages;
     int adcGetsSinceLastDacSet = 0;
 
     // for debugging:
@@ -535,13 +533,20 @@ class God {
         } else {
           for (int i = 0; i < numDacChannels; i++) {
             float currentVoltage;
-            if (steps % 2 == 0) {
-              currentVoltage = previousVoltageSetLow[i] + voltageStepSizeLow[i];
-              previousVoltageSetLow[i] = currentVoltage;
+            if (steps % (2 * numAdcAverages) != 0) {
+              if (steps % 2 == 0) {
+                currentVoltage = previousVoltageSetLow[i];
+              } else {
+                currentVoltage = previousVoltageSetHigh[i];
+              }
+            } else if (steps % 2 == 0) {
+              previousVoltageSetLow[i] += voltageStepSizeLow[i];
+              previousVoltageSetHigh[i] += voltageStepSizeHigh[i];
+              currentVoltage = previousVoltageSetLow[i];
             } else {
-              currentVoltage =
-                  previousVoltageSetHigh[i] + voltageStepSizeHigh[i];
-              previousVoltageSetHigh[i] = currentVoltage;
+              previousVoltageSetLow[i] += voltageStepSizeLow[i];
+              previousVoltageSetHigh[i] += voltageStepSizeHigh[i];
+              currentVoltage = previousVoltageSetHigh[i];
             }
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
                                                          currentVoltage);
