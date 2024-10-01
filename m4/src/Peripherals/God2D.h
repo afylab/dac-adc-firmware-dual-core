@@ -153,6 +153,7 @@ class God2D {
     }
 
     setStopFlag(false);
+    PeripheralCommsController::dataLedOn();
 
     // Start continuous ADC conversions
     for (int i = 0; i < numAdcChannels; i++) {
@@ -227,6 +228,8 @@ class God2D {
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::idleMode(adcChannels[i]);
     }
+
+    PeripheralCommsController::dataLedOff();
 
     // Clean up allocated memory
     // for (int i = 0; i < numSlowDacChannels; i++) {
@@ -489,6 +492,7 @@ class God2D {
     }
 
     setStopFlag(false);
+    PeripheralCommsController::dataLedOn();
 
     // Start continuous ADC conversions
     for (int i = 0; i < numAdcChannels; i++) {
@@ -563,6 +567,8 @@ class God2D {
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::idleMode(adcChannels[i]);
     }
+
+    PeripheralCommsController::dataLedOff();
 
     // Clean up allocated memory
     // for (int i = 0; i < numSlowDacChannels; i++) {

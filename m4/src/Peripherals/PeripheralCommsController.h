@@ -19,6 +19,20 @@ class PeripheralCommsController {
     }
   }
 
+  void beginSingleTransaction() {
+    digitalWrite(led, HIGH);
+    SPI.beginTransaction(spiSettings);
+  }
+
+  void endSingleTransaction() {
+    SPI.endTransaction();
+    digitalWrite(led, LOW);
+  }
+
+  static void dataLedOn() { digitalWrite(led, HIGH); }
+
+  static void dataLedOff() { digitalWrite(led, LOW); }
+
   void beginTransaction() { SPI.beginTransaction(spiSettings); }
 
   void endTransaction() { SPI.endTransaction(); }

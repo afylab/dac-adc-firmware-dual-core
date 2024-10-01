@@ -123,6 +123,7 @@ class God {
     TimingUtil::setupTimersTimeSeries(dac_interval_us, adc_interval_us);
 
     setStopFlag(false);
+    PeripheralCommsController::dataLedOn();
 
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::startContinuousConversion(adcChannels[i]);
@@ -177,6 +178,8 @@ class God {
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::idleMode(adcChannels[i]);
     }
+
+    PeripheralCommsController::dataLedOff();
 
     delete[] voltageStepSize;
     delete[] previousVoltageSet;
@@ -303,6 +306,7 @@ class God {
     TimingUtil::setupTimersDacLed(dac_interval_us, dac_settling_time_us);
 
     setStopFlag(false);
+    PeripheralCommsController::dataLedOn();
 
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::startContinuousConversion(adcChannels[i]);
@@ -362,6 +366,8 @@ class God {
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::idleMode(adcChannels[i]);
     }
+
+    PeripheralCommsController::dataLedOff();
 
     delete[] voltageStepSize;
     delete[] previousVoltageSet;
@@ -445,6 +451,7 @@ class God {
                             numAdcMeasuresPerDacStep * numAdcChannels * 5;
 
     setStopFlag(false);
+    PeripheralCommsController::dataLedOn();
 
     // calculate voltages
     // float** voltSetpoints = new float*[numDacChannels];
@@ -567,6 +574,8 @@ class God {
     for (int i = 0; i < numAdcChannels; i++) {
       ADCController::idleMode(adcChannels[i]);
     }
+
+    PeripheralCommsController::dataLedOff();
 
     delete[] dacChannels;
     delete[] dacV0_1;
