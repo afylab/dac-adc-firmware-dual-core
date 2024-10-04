@@ -206,11 +206,6 @@ class God2D {
       }
 
       if (!rampResult.isSuccess()) {
-        // Clean up allocated memory before returning
-        // for (int i = 0; i < numSlowDacChannels; ++i) {
-        //   delete[] slowVoltSetpoints[i];
-        // }
-        // delete[] slowVoltSetpoints;
         delete[] fastDacChannels;
         delete[] fastDacV0s;
         delete[] fastDacVfs;
@@ -232,10 +227,6 @@ class God2D {
     PeripheralCommsController::dataLedOff();
 
     // Clean up allocated memory
-    // for (int i = 0; i < numSlowDacChannels; i++) {
-    //   delete[] slowVoltSetpoints[i];
-    // }
-    // delete[] slowVoltSetpoints;
     delete[] fastDacChannels;
     delete[] fastDacV0s;
     delete[] fastDacVfs;
@@ -333,11 +324,6 @@ class God2D {
 
     TimingUtil::disableDacInterrupt();
     TimingUtil::disableAdcInterrupt();
-
-    // for (int i = 0; i < numDacChannels; i++) {
-    //   delete[] voltSetpoints[i];
-    // }
-    // delete[] voltSetpoints;
 
     delete[] voltageStepSize;
     delete[] previousVoltageSet;
@@ -546,10 +532,6 @@ class God2D {
 
       if (!rampResult.isSuccess()) {
         // Clean up allocated memory before returning
-        // for (int i = 0; i < numSlowDacChannels; ++i) {
-        //   delete[] slowVoltSetpoints[i];
-        // }
-        // delete[] slowVoltSetpoints;
         delete[] fastDacChannels;
         delete[] fastDacV0s;
         delete[] fastDacVfs;
@@ -571,10 +553,6 @@ class God2D {
     PeripheralCommsController::dataLedOff();
 
     // Clean up allocated memory
-    // for (int i = 0; i < numSlowDacChannels; i++) {
-    //   delete[] slowVoltSetpoints[i];
-    // }
-    // delete[] slowVoltSetpoints;
     delete[] fastDacChannels;
     delete[] fastDacV0s;
     delete[] fastDacVfs;
@@ -678,11 +656,6 @@ class God2D {
 
     TimingUtil::disableDacInterrupt();
     TimingUtil::disableAdcInterrupt();
-
-    // for (int i = 0; i < numDacChannels; i++) {
-    //   delete[] voltSetpoints[i];
-    // }
-    // delete[] voltSetpoints;
 
     delete[] voltageStepSize;
     delete[] previousVoltageSet;

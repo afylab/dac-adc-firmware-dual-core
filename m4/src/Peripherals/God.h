@@ -184,11 +184,6 @@ class God {
     delete[] voltageStepSize;
     delete[] previousVoltageSet;
 
-    // for (int i = 0; i < numDacChannels; i++) {
-    //   delete[] voltSetpoints[i];
-    // }
-    // delete[] voltSetpoints;
-
     if (getStopFlag()) {
       setStopFlag(false);
       return OperationResult::Failure("RAMPING_STOPPED");
@@ -372,11 +367,6 @@ class God {
     delete[] voltageStepSize;
     delete[] previousVoltageSet;
 
-    // for (int i = 0; i < numDacChannels; i++) {
-    //   delete[] voltSetpoints[i];
-    // }
-    // delete[] voltSetpoints;
-
     if (getStopFlag()) {
       setStopFlag(false);
       return OperationResult::Failure("RAMPING_STOPPED");
@@ -446,28 +436,13 @@ class God {
                                           numAdcChannels > 1);
     }
 
-    uint32_t dacPeriod_us = (numAdcMeasuresPerDacStep + numAdcConversionSkips + 1) *
-                                actualConversionTime_us +
-                            numAdcMeasuresPerDacStep * numAdcChannels * 5;
+    uint32_t dacPeriod_us =
+        (numAdcMeasuresPerDacStep + numAdcConversionSkips + 1) *
+            actualConversionTime_us +
+        numAdcMeasuresPerDacStep * numAdcChannels * 5;
 
     setStopFlag(false);
     PeripheralCommsController::dataLedOn();
-
-    // calculate voltages
-    // float** voltSetpoints = new float*[numDacChannels];
-
-    // for (int i = 0; i < numDacChannels; i++) {
-    //   voltSetpoints[i] = new float[numDacSteps * numAdcAverages];
-    //   int l = 0;
-    //   for (int j = 0; j < numDacSteps; j++) {
-    //     for (int k = 0; k < numAdcAverages; k++) {
-    //       float* dacV0 = l % 2 ? dacV0_1 : dacV0_2;
-    //       float* dacVf = l % 2 ? dacVf_1 : dacVf_2;
-    //       voltSetpoints[i][l++] =
-    //           dacV0[i] + (dacVf[i] - dacV0[i]) * j / (numDacSteps - 1);
-    //     }
-    //   }
-    // }
 
     float* voltageStepSizeLow = new float[numDacChannels];
     float* voltageStepSizeHigh = new float[numDacChannels];
@@ -490,8 +465,7 @@ class God {
     int steps = 0;
     int totalSteps = 2 * numDacSteps * numAdcAverages + 1;
     int x = 0;
-    int total_data_size =
-        2 * numDacSteps * numAdcMeasuresPerDacStep * numAdcAverages;
+    int total_data_size = totalSteps * numAdcMeasuresPerDacStep;
     int adcGetsSinceLastDacSet = 0;
 
     // for debugging:
@@ -587,10 +561,6 @@ class God {
     delete[] previousVoltageSetLow;
     delete[] voltageStepSizeHigh;
     delete[] previousVoltageSetHigh;
-    // for (int i = 0; i < numDacChannels; i++) {
-    //   delete[] voltSetpoints[i];
-    // }
-    // delete[] voltSetpoints;
 
     if (getStopFlag()) {
       setStopFlag(false);
