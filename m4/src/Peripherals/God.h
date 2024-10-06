@@ -19,8 +19,8 @@ class God {
     registerMemberFunctionVector(dacLedBufferRampWrapper,
                                  "DAC_LED_BUFFER_RAMP");
     registerMemberFunction(dacChannelCalibration, "DAC_CH_CAL");
-    registerMemberFunctionVector(boxcarAverageRampDebug,
-                                 "BOXCAR_BUFFER_RAMP_DEBUG");
+    registerMemberFunctionVector(boxcarAverageRamp,
+                                 "BOXCAR_BUFFER_RAMP");
   }
 
   // args:
@@ -396,7 +396,7 @@ class God {
   // numAdcMeasuresPerDacStep, numAdcAverages, numAdcConversionSkips,
   // adcConversionTime_us, {for each dac channel: dac channel, v0_1, vf_1, v0_2,
   // vf_2}, {for each adc channel: adc channel}
-  static OperationResult boxcarAverageRampDebug(
+  static OperationResult boxcarAverageRamp(
       const std::vector<float>& args) {
     size_t currentIndex = 0;
 
@@ -465,8 +465,11 @@ class God {
     int steps = 0;
     int totalSteps = 2 * numDacSteps * numAdcAverages + 1;
     int x = 0;
-    int total_data_size = totalSteps * numAdcMeasuresPerDacStep;
+    int total_data_size = (totalSteps-1) * numAdcMeasuresPerDacStep;
     int adcGetsSinceLastDacSet = 0;
+
+    // float thing = static_cast<float>(total_data_size * numAdcChannels * 4);
+    // m4SendFloat(&thing, 1);
 
     // for debugging:
     // float dacPeriodFloat = static_cast<float>(dacPeriod_us);
@@ -481,7 +484,7 @@ class God {
     TimingUtil::setupTimersTimeSeries(dacPeriod_us, actualConversionTime_us);
 
     while (x < total_data_size && !getStopFlag()) {
-      if (TimingUtil::adcFlag && x < steps * numAdcMeasuresPerDacStep) {
+      if (TimingUtil::adcFlag && x < (steps-1) * numAdcMeasuresPerDacStep) {
         ADCBoard::commsController.beginTransaction();
         if (steps <= 1) {
           for (int i = 0; i < numAdcChannels; i++) {
@@ -499,8 +502,8 @@ class God {
             delete[] packets;
             x++;
           }
-          adcGetsSinceLastDacSet++;
         }
+        adcGetsSinceLastDacSet++;
         ADCBoard::commsController.endTransaction();
         TimingUtil::adcFlag = false;
       }
@@ -536,8 +539,8 @@ class God {
         DACController::toggleLdac();
         DACChannel::commsController.endTransaction();
         steps++;
-        TimingUtil::dacFlag = false;
         adcGetsSinceLastDacSet = 0;
+        TimingUtil::dacFlag = false;
         TIM8->CNT = 0;
       }
     }
