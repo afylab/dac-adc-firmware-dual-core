@@ -5,8 +5,8 @@
 
 #include "Config.h"
 
-#include "KVStore.h"
-#include "kvstore_global_api.h"
+// #include "KVStore.h"
+// #include "kvstore_global_api.h"
 
 class DACChannel {
  private:
@@ -40,17 +40,17 @@ class DACChannel {
     commsController.endSingleTransaction();
     setVoltage(0.0);
 
-    char offsetKey[14];
-    char gainKey[12];
-    sprintf(offsetKey, "offsetError%d", cs_pin);
-    sprintf(gainKey, "gainError%d", cs_pin);
-    float offset;
-    kv_get(offsetKey, (uint8_t*)&offset, sizeof(offsetKey) , 0);
-    float gain;
-    kv_get(gainKey, (uint8_t*)&gain, sizeof(gain) , 0);
+    // char offsetKey[14];
+    // char gainKey[12];
+    // sprintf(offsetKey, "offsetError%d", cs_pin);
+    // sprintf(gainKey, "gainError%d", cs_pin);
+    // float offset;
+    // kv_get(offsetKey, (uint8_t*)&offset, sizeof(offsetKey) , 0);
+    // float gain;
+    // kv_get(gainKey, (uint8_t*)&gain, sizeof(gain) , 0);
 
-    this->offset_error = offset;
-    this->gain_error = gain;
+    // this->offset_error = offset;
+    // this->gain_error = gain;
   }
 
   // initialize is the command INITIALIZE, setup is called in main::setup
@@ -101,12 +101,12 @@ class DACChannel {
   }
 
   void setCalibration(float offset, float gain) {
-    char offsetKey[14];
-    char gainKey[12];
-    sprintf(offsetKey, "offsetError%d", cs_pin);
-    sprintf(gainKey, "gainError%d", cs_pin);
-    kv_set(offsetKey, (uint8_t*)&offset_error, sizeof(offset), 0);
-    kv_set(gainKey, (uint8_t*)&gain_error, sizeof(gain), 0);
+    // char offsetKey[14];
+    // char gainKey[12];
+    // sprintf(offsetKey, "offsetError%d", cs_pin);
+    // sprintf(gainKey, "gainError%d", cs_pin);
+    // kv_set(offsetKey, (uint8_t*)&offset_error, sizeof(offset), 0);
+    // kv_set(gainKey, (uint8_t*)&gain_error, sizeof(gain), 0);
     this->offset_error = offset;
     this->gain_error = gain;
     voltage_upper_bound = full_scale * gain_error + offset_error;
