@@ -166,10 +166,9 @@ class God2D {
       // Set slow DAC channels to the current slow step voltages
       DACChannel::commsController.beginTransaction();
       for (int i = 0; i < numSlowDacChannels; ++i) {
-        float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
-        previousVoltageSet[i] = currentVoltage;
         DACController::setVoltageNoTransactionNoLdac(slowDacChannels[i],
-                                                     currentVoltage);
+                                                     previousVoltageSet[i]);
+        previousVoltageSet[i] += voltageStepSize[i];
       }
       DACController::toggleLdac();
       DACChannel::commsController.endTransaction();
@@ -490,10 +489,9 @@ class God2D {
       // Set slow DAC channels to the current slow step voltages
       DACChannel::commsController.beginTransaction();
       for (int i = 0; i < numSlowDacChannels; ++i) {
-        float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
-        previousVoltageSet[i] = currentVoltage;
         DACController::setVoltageNoTransactionNoLdac(slowDacChannels[i],
-                                                     currentVoltage);
+                                                     previousVoltageSet[i]);
+        previousVoltageSet[i] += voltageStepSize[i];
       }
       DACController::toggleLdac();
       DACChannel::commsController.endTransaction();
