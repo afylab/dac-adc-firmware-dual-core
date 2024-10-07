@@ -22,9 +22,7 @@ This firmware is comprised of two individual PlatformIO projects, one for the M7
 
 ## Usage
 
-Since PlatformIO does not yet have support for the Arduino Giga, we have forked a custom implementation of PlatformIO for the Giga found [here](https://github.com/afylab/platform-ststm32#develop). This is what each project uses to build for the Giga, and is found in each project's platformio.ini.
-
-A full guide on the code structure is being developed and can currently be found [here](https://share.note.sx/n340o95a#1ld68Rexy9NMUivdsulvSYpptsx1KMYcsj4a4mlvtj4). The location of these docs may change in the future, but a link to the newest docs will always be on this GitHub repository.
+[A full guide on the code structure is being developed and can currently be found here](https://share.note.sx/n340o95a#1ld68Rexy9NMUivdsulvSYpptsx1KMYcsj4a4mlvtj4). The location of these docs may change in the future, but a link to the newest docs will always be on this GitHub repository.
 
 
 ## License
