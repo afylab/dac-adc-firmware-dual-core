@@ -159,10 +159,9 @@ class God {
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
-            float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
-            previousVoltageSet[i] = currentVoltage;
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
-                                                         currentVoltage);
+                                                         previousVoltageSet[i]);
+            previousVoltageSet[i] += voltageStepSize[i];
           }
         }
         DACController::toggleLdac();
@@ -297,6 +296,8 @@ class God {
       previousVoltageSet[i] = dacV0s[i];
     }
 
+    float numAdcAveragesInv = 1.0 / static_cast<float>(numAdcAverages);
+
     // Set up timers with the same period but phase shifted
     TimingUtil::setupTimersDacLed(dac_interval_us, dac_settling_time_us);
 
@@ -323,10 +324,10 @@ class God {
               total +=
                   ADCController::getVoltageDataNoTransaction(adcChannels[i]);
             }
-            float v = total / numAdcAverages;
+            float v = total * numAdcAveragesInv;
             packets[i] = v;
           }
-          m4SendVoltage(packets, numAdcChannels);
+          m4SendFloat(packets, numAdcChannels);
           delete[] packets;
           x++;
         }
@@ -342,10 +343,9 @@ class God {
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
-            float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
-            previousVoltageSet[i] = currentVoltage;
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
-                                                         currentVoltage);
+                                                          previousVoltageSet[i]);
+            previousVoltageSet[i] += voltageStepSize[i];
           }
         }
         DACController::toggleLdac();

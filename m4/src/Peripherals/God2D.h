@@ -309,10 +309,9 @@ class God2D {
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
-            float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
-            previousVoltageSet[i] = currentVoltage;
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
-                                                         currentVoltage);
+                                                         previousVoltageSet[i]);
+            previousVoltageSet[i] += voltageStepSize[i];                 
           }
         }
         DACController::toggleLdac();
@@ -590,6 +589,8 @@ class God2D {
     //   }
     // }
 
+    float numAdcAveragesInv = 1.0 / static_cast<float>(numAdcAverages);
+
     float *voltageStepSize = new float[numDacChannels];
 
     for (int i = 0; i < numDacChannels; i++) {
@@ -622,7 +623,7 @@ class God2D {
               total +=
                   ADCController::getVoltageDataNoTransaction(adcChannels[i]);
             }
-            float v = total / numAdcAverages;
+            float v = total * numAdcAveragesInv;
             packets[i] = v;
           }
           m4SendVoltage(packets, numAdcChannels);
@@ -641,10 +642,9 @@ class God2D {
           }
         } else {
           for (int i = 0; i < numDacChannels; i++) {
-            float currentVoltage = previousVoltageSet[i] + voltageStepSize[i];
-            previousVoltageSet[i] = currentVoltage;
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
-                                                         currentVoltage);
+                                                         previousVoltageSet[i]);
+            previousVoltageSet[i] += voltageStepSize[i];
           }
         }
         DACController::toggleLdac();
