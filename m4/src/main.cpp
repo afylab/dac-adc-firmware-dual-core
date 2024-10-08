@@ -32,9 +32,9 @@ void setup() {
     DACController::addChannel(i);
   }
 
-  ADCController::addBoard(adc_cs_pins[0], drdy[0], reset[0]);
-  
-  ADCController::addBoard(adc_cs_pins[1], drdy[1], reset[1]);
+  for (int i : adc_cs_pins) {
+    ADCController::addBoard(adc_cs_pins[i], drdy[i], reset[i]);
+  }
 
   DACController::setup();
   ADCController::setup();

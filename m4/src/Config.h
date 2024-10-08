@@ -16,6 +16,19 @@ const int led = 7; // indicator LED
 const int data = 6; // data indicator LED
 const int err = 11; // error indicator LED
 
+
+// const int adc_cs_pins[4] = {39,40,41,42};
+// const int dac_cs_pins[16] = {23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38};
+// const int ldac = 22;
+// const int reset[4] = {43,44,45,46};
+// const int drdy[4] = {47,48,49,50};
+// const int adc_sync = 51;
+// const int led = 7; // indicator LED
+// const int data = 6; // data indicator LED
+// const int err = 11; // error indicator LED
+
+
+
 const int SPI_SPEED = 4000000; // SPI speed for both ADC and DAC
 
 const static SPISettings DAC_SPI_SETTINGS(SPI_SPEED, MSBFIRST, SPI_MODE3);
