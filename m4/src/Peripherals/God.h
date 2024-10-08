@@ -39,19 +39,16 @@ class God {
     uint32_t dac_interval_us = static_cast<uint32_t>(args[3]);
     uint32_t adc_interval_us = static_cast<uint32_t>(args[4]);
 
-    // Check if we have enough arguments for all DAC and ADC channels
     if (args.size() !=
         static_cast<size_t>(5 + numDacChannels * 3 + numAdcChannels)) {
       return OperationResult::Failure("Incorrect number of arguments");
     }
 
-    // Allocate memory for DAC and ADC channel information
     int* dacChannels = new int[numDacChannels];
     float* dacV0s = new float[numDacChannels];
     float* dacVfs = new float[numDacChannels];
     int* adcChannels = new int[numAdcChannels];
 
-    // Parse DAC channel information
     for (int i = 0; i < numDacChannels; ++i) {
       int baseIndex = 5 + i * 3;
       dacChannels[i] = static_cast<int>(args[baseIndex]);
@@ -59,7 +56,6 @@ class God {
       dacVfs[i] = static_cast<float>(args[baseIndex + 2]);
     }
 
-    // Parse ADC channel information
     for (int i = 0; i < numAdcChannels; ++i) {
       adcChannels[i] = static_cast<int>(args[5 + numDacChannels * 3 + i]);
     }
@@ -82,31 +78,11 @@ class God {
     if (numDacChannels < 1 || numAdcChannels < 1) {
       return OperationResult::Failure("Invalid number of channels");
     }
-    // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per
-    // byte, 4 bytes per ADC conversion if (adc_interval_us <
-    // adc_comms_period_us*numAdcChannels) {
-    //   return OperationResult::Failure("ADC interval too short");
-    // }
-    // uint32_t dac_comms_period_us = (1.0/SPI_SPEED)*1e6*8*3; // 8 bits per
-    // byte, 3 bytes per DAC update if (dac_interval_us <
-    // dac_comms_period_us*numDacChannels) {
-    //   return OperationResult::Failure("DAC interval too short");
-    // }
 
     int steps = 0;
     int x = 0;
 
     const int saved_data_size = numSteps * dac_interval_us / adc_interval_us;
-
-    // float** voltSetpoints = new float*[numDacChannels];
-
-    // for (int i = 0; i < numDacChannels; i++) {
-    //   voltSetpoints[i] = new float[numSteps];
-    //   for (int j = 0; j < numSteps; j++) {
-    //     voltSetpoints[i][j] =
-    //         dacV0s[i] + (dacVfs[i] - dacV0s[i]) * j / (numSteps - 1);
-    //   }
-    // }
 
     float* voltageStepSize = new float[numDacChannels];
 
@@ -208,19 +184,16 @@ class God {
     uint32_t dac_interval_us = static_cast<uint32_t>(args[4]);
     uint32_t dac_settling_time_us = static_cast<uint32_t>(args[5]);
 
-    // Check if we have enough arguments for all DAC and ADC channels
     if (args.size() !=
         static_cast<size_t>(6 + numDacChannels * 3 + numAdcChannels)) {
       return OperationResult::Failure("Incorrect number of arguments");
     }
 
-    // Allocate memory for DAC and ADC channel information
     int* dacChannels = new int[numDacChannels];
     float* dacV0s = new float[numDacChannels];
     float* dacVfs = new float[numDacChannels];
     int* adcChannels = new int[numAdcChannels];
 
-    // Parse DAC channel information
     for (int i = 0; i < numDacChannels; ++i) {
       int baseIndex = 6 + i * 3;
       dacChannels[i] = static_cast<int>(args[baseIndex]);
@@ -228,7 +201,6 @@ class God {
       dacVfs[i] = static_cast<float>(args[baseIndex + 2]);
     }
 
-    // Parse ADC channel information
     for (int i = 0; i < numAdcChannels; ++i) {
       adcChannels[i] = static_cast<int>(args[6 + numDacChannels * 3 + i]);
     }
@@ -263,26 +235,9 @@ class God {
             "DAC settling time too short for ADC conversion time");
       }
     }
-    // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per
-    // byte, 4 bytes per ADC conversion if
-    // (numAdcChannels*numAdcAverages*adc_comms_period_us > dac_interval_us -
-    // dac_settling_time_us) {
-    //   return OperationResult::Failure("Buffer Ramp limited by ADC SPI
-    //   comms");
-    // }
 
     int steps = 0;
     int x = 0;
-
-    // float** voltSetpoints = new float*[numDacChannels];
-
-    // for (int i = 0; i < numDacChannels; i++) {
-    //   voltSetpoints[i] = new float[numSteps];
-    //   for (int j = 0; j < numSteps; j++) {
-    //     voltSetpoints[i][j] =
-    //         dacV0s[i] + (dacVfs[i] - dacV0s[i]) * j / (numSteps - 1);
-    //   }
-    // }
 
     float* voltageStepSize = new float[numDacChannels];
 
@@ -400,7 +355,6 @@ class God {
       const std::vector<float>& args) {
     size_t currentIndex = 0;
 
-    // Parse initial parameters
     int numDacChannels = static_cast<int>(args[currentIndex++]);
     int numAdcChannels = static_cast<int>(args[currentIndex++]);
     int numDacSteps = static_cast<int>(args[currentIndex++]);
@@ -467,15 +421,6 @@ class God {
     int x = 0;
     int total_data_size = (totalSteps-1) * numAdcMeasuresPerDacStep;
     int adcGetsSinceLastDacSet = 0;
-
-    // float thing = static_cast<float>(total_data_size * numAdcChannels * 4);
-    // m4SendFloat(&thing, 1);
-
-    // for debugging:
-    // float dacPeriodFloat = static_cast<float>(dacPeriod_us);
-    // m4SendFloat(&dacPeriodFloat, 1);
-    // float adcPeriodFloat = static_cast<float>(actualConversionTime_us);
-    // m4SendFloat(&adcPeriodFloat, 1);
 
     for (int i = 0; i < numAdcChannels; ++i) {
       ADCController::startContinuousConversion(adcChannels[i]);

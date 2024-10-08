@@ -1,51 +1,51 @@
 #pragma once
 
 #include <Arduino.h>
-
 #include "SPI.h"
 
 class PeripheralCommsController {
  private:
   SPISettings spiSettings;
+  SPIClass* spi;
 
  public:
   static bool spiInitialized;
-  PeripheralCommsController(SPISettings spi_s) : spiSettings(spi_s) {}
+
+  PeripheralCommsController(SPISettings spi_s, SPIClass* spi_p) : spiSettings(spi_s), spi(spi_p) {}
 
   static void setup() {
     if (!spiInitialized) {
       SPI.begin();
+      SPI1.begin();
       spiInitialized = true;
     }
   }
 
   void beginSingleTransaction() {
     digitalWrite(led, HIGH);
-    SPI.beginTransaction(spiSettings);
+    spi->beginTransaction(spiSettings);
   }
 
   void endSingleTransaction() {
-    SPI.endTransaction();
+    spi->endTransaction();
     digitalWrite(led, LOW);
   }
 
-  static void dataLedOn() { digitalWrite(led, HIGH); }
+  static void dataLedOn() { /*digitalWrite(led, HIGH);*/ }
 
-  static void dataLedOff() { digitalWrite(led, LOW); }
+  static void dataLedOff() { /*digitalWrite(led, LOW);*/ }
 
-  void beginTransaction() { SPI.beginTransaction(spiSettings); }
+  void beginTransaction() { spi->beginTransaction(spiSettings); }
 
-  void endTransaction() { SPI.endTransaction(); }
+  void endTransaction() { spi->endTransaction(); }
 
   byte receiveByte() {
-    return SPI.transfer(0);
+    return spi->transfer(0);
   }
 
+  void transfer(void* buf, size_t count) { spi->transfer(buf, count); }
 
-  void transfer(void* buf, size_t count) { SPI.transfer(buf, count); }
-
-  uint8_t transfer(uint8_t data) { return SPI.transfer(data); }
-
+  uint8_t transfer(uint8_t data) { return spi->transfer(data); }
 };
 
 bool PeripheralCommsController::spiInitialized = false;
