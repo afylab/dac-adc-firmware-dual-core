@@ -7,11 +7,13 @@
 //  physical GPIO to software data names                     //
 ///////////////////////////////////////////////////////////////
 
-const int adc_cs_pins[2] = {48, 42}; // SYNC for both 24-bit ADCs
-const int dac_cs_pins[4] = {24, 26, 38, 36}; // CS for 4x 20-bit DAC channels
+const int NUM_ADC_BOARDS = 2;
+const int NUM_DAC_CHANNELS = 4;
+const int adc_cs_pins[NUM_ADC_BOARDS] = {48, 42}; // SYNC for both 24-bit ADCs
+const int dac_cs_pins[NUM_DAC_CHANNELS] = {24, 26, 38, 36}; // CS for 4x 20-bit DAC channels
 const int ldac = 22; // LDAC pin shared across all AD5791 -- used to synchronize DAC voltage output
-const int reset[2] = {46, 44}; // reset pins on ADC
-const int drdy[2] = {50, 40}; // data_ready pin for both ADCs -- used as input to indicate ADC conversion has completed
+const int reset[NUM_ADC_BOARDS] = {46, 44}; // reset pins on ADC
+const int drdy[NUM_ADC_BOARDS] = {50, 40}; // data_ready pin for both ADCs -- used as input to indicate ADC conversion has completed
 const int led = 7; // indicator LED
 const int data = 6; // data indicator LED
 const int err = 11; // error indicator LED

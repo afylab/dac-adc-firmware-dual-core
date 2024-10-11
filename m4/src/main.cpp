@@ -32,7 +32,7 @@ void setup() {
     DACController::addChannel(i);
   }
 
-  for (int i : adc_cs_pins) {
+  for (int i=0; i<NUM_ADC_BOARDS; i++) {
     ADCController::addBoard(adc_cs_pins[i], drdy[i], reset[i]);
   }
 
