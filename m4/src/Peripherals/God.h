@@ -391,9 +391,7 @@ class God {
     }
 
     uint32_t dacPeriod_us =
-        (numAdcMeasuresPerDacStep + numAdcConversionSkips + 1) *
-            actualConversionTime_us +
-        numAdcMeasuresPerDacStep * numAdcChannels * 5;
+        (numAdcMeasuresPerDacStep + numAdcConversionSkips) * (actualConversionTime_us + 5) * numAdcChannels;
 
     setStopFlag(false);
     PeripheralCommsController::dataLedOn();
