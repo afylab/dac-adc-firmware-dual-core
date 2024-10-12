@@ -6,28 +6,26 @@
 class PeripheralCommsController {
  private:
   SPISettings spiSettings;
-  SPIClass* spi;
 
  public:
   static bool spiInitialized;
 
-  PeripheralCommsController(SPISettings spi_s, SPIClass* spi_p) : spiSettings(spi_s), spi(spi_p) {}
+  PeripheralCommsController(SPISettings spi_s) : spiSettings(spi_s) {}
 
   static void setup() {
     if (!spiInitialized) {
       SPI.begin();
-      SPI1.begin();
       spiInitialized = true;
     }
   }
 
   void beginSingleTransaction() {
     digitalWrite(led, HIGH);
-    spi->beginTransaction(spiSettings);
+    SPI.beginTransaction(spiSettings);
   }
 
   void endSingleTransaction() {
-    spi->endTransaction();
+    SPI.endTransaction();
     digitalWrite(led, LOW);
   }
 
@@ -35,17 +33,17 @@ class PeripheralCommsController {
 
   static void dataLedOff() { /*digitalWrite(led, LOW);*/ }
 
-  void beginTransaction() { spi->beginTransaction(spiSettings); }
+  void beginTransaction() { SPI.beginTransaction(spiSettings); }
 
-  void endTransaction() { spi->endTransaction(); }
+  void endTransaction() { SPI.endTransaction(); }
 
   byte receiveByte() {
-    return spi->transfer(0);
+    return SPI.transfer(0);
   }
 
-  void transfer(void* buf, size_t count) { spi->transfer(buf, count); }
+  void transfer(void* buf, size_t count) { SPI.transfer(buf, count); }
 
-  uint8_t transfer(uint8_t data) { return spi->transfer(data); }
+  uint8_t transfer(uint8_t data) { return SPI.transfer(data); }
 };
 
 bool PeripheralCommsController::spiInitialized = false;

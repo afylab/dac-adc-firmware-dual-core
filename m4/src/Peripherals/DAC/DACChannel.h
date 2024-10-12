@@ -19,7 +19,7 @@ class DACChannel {
 
  public:
   inline static PeripheralCommsController commsController =
-      PeripheralCommsController(DAC_SPI_SETTINGS, &SPI);
+      PeripheralCommsController(DAC_SPI_SETTINGS);
   DACChannel(int cs_pin) {
     this->cs_pin = cs_pin;
     offset_error = 0.0;

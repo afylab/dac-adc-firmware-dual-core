@@ -4,7 +4,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <Peripherals/PeripheralCommsController.h>
+#include <Peripherals/PeripheralCommsController1.h>
 
 #include "Config.h"
 
@@ -81,8 +81,8 @@ class ADCBoard {
   }
 
  public:
-  inline static PeripheralCommsController commsController =
-      PeripheralCommsController(ADC_SPI_SETTINGS, &SPI);
+  inline static PeripheralCommsController1 commsController =
+      PeripheralCommsController1(ADC_SPI_SETTINGS);
 
   ADCBoard(int cs_pin, int data_ready_pin, int reset_pin)
       : cs_pin(cs_pin), data_ready_pin(data_ready_pin), reset_pin(reset_pin) {}
