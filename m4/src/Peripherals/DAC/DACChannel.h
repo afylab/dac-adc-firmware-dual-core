@@ -33,11 +33,9 @@ class DACChannel {
     byte bytesToSend[3] = {
         32, 0,
         2};  // Write to control register; Reserved byte; Unclamp DAC from GND
-    commsController.beginSingleTransaction();
     digitalWrite(cs_pin, LOW);
     commsController.transfer(bytesToSend, 3);
     digitalWrite(cs_pin, HIGH);
-    commsController.endSingleTransaction();
     setVoltage(0.0);
 
     // char offsetKey[14];
@@ -70,13 +68,11 @@ class DACChannel {
 
     byte bytesToSend[3] = {b1, b2, b3};
 
-    commsController.beginSingleTransaction();
     digitalWrite(cs_pin, LOW);
     commsController.transfer(bytesToSend,
                              3);  // send command byte to DAC; MS data bits,
                                   // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
-    commsController.endSingleTransaction();
 
     digitalWrite(ldac, LOW);
     digitalWrite(ldac, HIGH);
@@ -135,13 +131,11 @@ class DACChannel {
 
     byte bytesToSend[3] = {b1, b2, b3};
 
-    commsController.beginSingleTransaction();
     digitalWrite(cs_pin, LOW);
     commsController.transfer(bytesToSend,
                              3);  // send command byte to DAC; MS data bits,
                                   // DAC2; LS 8 data bits, DAC2
     digitalWrite(cs_pin, HIGH);
-    commsController.endSingleTransaction();
 
     digitalWrite(ldac, LOW);
 
@@ -153,7 +147,6 @@ class DACChannel {
   float getVoltage() {
     byte bytesToSend[3] = {144, 0, 0};
     byte data[3];
-    commsController.beginSingleTransaction();
     digitalWrite(cs_pin, LOW);
     commsController.transfer(bytesToSend, 3);
     digitalWrite(cs_pin, HIGH);
@@ -161,7 +154,6 @@ class DACChannel {
     digitalWrite(cs_pin, LOW);
     commsController.transfer(data, 3);
     digitalWrite(cs_pin, HIGH);
-    commsController.endSingleTransaction();
 
     float voltage = threeByteToVoltage(data[0], data[1], data[2]);
     return gain_error * (voltage + offset_error);

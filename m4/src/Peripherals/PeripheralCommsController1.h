@@ -21,24 +21,10 @@ class PeripheralCommsController1 {
     }
   }
 
-  void beginSingleTransaction() {
-    // digitalWrite(led, HIGH);
-    SPI1.beginTransaction(spiSettings);
-  }
-
-  void endSingleTransaction() {
-    SPI1.endTransaction();
-    // digitalWrite(led, LOW);
-  }
-
   static void dataLedOn() { /*digitalWrite(led, HIGH);*/ }
 
   static void dataLedOff() { /*digitalWrite(led, LOW);*/ }
-
-  void beginTransaction() { SPI1.beginTransaction(spiSettings); }
-
-  void endTransaction() { SPI1.endTransaction(); }
-
+  
   byte receiveByte() {
     return SPI1.transfer(0);
   }

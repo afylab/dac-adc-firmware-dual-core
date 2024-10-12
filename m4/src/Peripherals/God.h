@@ -107,7 +107,6 @@ class God {
 
     while (x < saved_data_size && !getStopFlag()) {
       if (TimingUtil::adcFlag) {
-        ADCBoard::commsController.beginTransaction();
         if (steps <= 1) {
           for (int i = 0; i < numAdcChannels; i++) {
             ADCController::getVoltageDataNoTransaction(adcChannels[i]);
@@ -123,11 +122,9 @@ class God {
           delete[] packets;
           x++;
         }
-        ADCBoard::commsController.endTransaction();
         TimingUtil::adcFlag = false;
       }
       if (TimingUtil::dacFlag && steps < numSteps + 1) {
-        DACChannel::commsController.beginTransaction();
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
@@ -141,7 +138,6 @@ class God {
           }
         }
         DACController::toggleLdac();
-        DACChannel::commsController.endTransaction();
         steps++;
         TimingUtil::dacFlag = false;
       }
@@ -264,7 +260,6 @@ class God {
     }
     while (x < numSteps && !getStopFlag()) {
       if (TimingUtil::adcFlag) {
-        ADCBoard::commsController.beginTransaction();
         if (steps <= 1) {
           for (int i = 0; i < numAdcChannels; i++) {
             for (int j = 0; j < numAdcAverages; j++) {
@@ -286,11 +281,9 @@ class God {
           delete[] packets;
           x++;
         }
-        ADCBoard::commsController.endTransaction();
         TimingUtil::adcFlag = false;
       }
       if (TimingUtil::dacFlag && steps < numSteps + 1) {
-        DACChannel::commsController.beginTransaction();
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
@@ -304,7 +297,6 @@ class God {
           }
         }
         DACController::toggleLdac();
-        DACChannel::commsController.endTransaction();
         steps++;
         TimingUtil::dacFlag = false;
       }
@@ -428,7 +420,6 @@ class God {
 
     while (x < total_data_size && !getStopFlag()) {
       if (TimingUtil::adcFlag && x < (steps-1) * numAdcMeasuresPerDacStep) {
-        ADCBoard::commsController.beginTransaction();
         if (steps <= 1) {
           for (int i = 0; i < numAdcChannels; i++) {
             ADCController::getVoltageDataNoTransaction(adcChannels[i]);
@@ -447,11 +438,9 @@ class God {
           }
         }
         adcGetsSinceLastDacSet++;
-        ADCBoard::commsController.endTransaction();
         TimingUtil::adcFlag = false;
       }
       if (TimingUtil::dacFlag && steps < totalSteps) {
-        DACChannel::commsController.beginTransaction();
         if (steps == 0) {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
@@ -480,7 +469,6 @@ class God {
           }
         }
         DACController::toggleLdac();
-        DACChannel::commsController.endTransaction();
         steps++;
         adcGetsSinceLastDacSet = 0;
         TimingUtil::dacFlag = false;
