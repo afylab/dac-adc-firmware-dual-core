@@ -18,8 +18,7 @@ class DACChannel {
   float full_scale = 10.0;
 
  public:
-  inline static PeripheralCommsController commsController =
-      PeripheralCommsController(DAC_SPI_SETTINGS);
+  inline static PeripheralCommsController commsController;
   DACChannel(int cs_pin) {
     this->cs_pin = cs_pin;
     offset_error = 0.0;

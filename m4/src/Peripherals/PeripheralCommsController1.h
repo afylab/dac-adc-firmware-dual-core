@@ -6,17 +6,14 @@
 
 
 class PeripheralCommsController1 {
- private:
-  SPISettings spiSettings;
-
  public:
   static bool spiInitialized;
 
-  PeripheralCommsController1(SPISettings spi_s) : spiSettings(spi_s) {}
 
   static void setup() {
     if (!spiInitialized) {
       SPI1.begin();
+      SPI1.beginTransaction(ADC_SPI_SETTINGS);
       spiInitialized = true;
     }
   }

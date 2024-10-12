@@ -4,17 +4,16 @@
 #include "SPI.h"
 
 class PeripheralCommsController {
- private:
-  SPISettings spiSettings;
 
  public:
   static bool spiInitialized;
 
-  PeripheralCommsController(SPISettings spi_s) : spiSettings(spi_s) {}
+  PeripheralCommsController() {}
 
   static void setup() {
     if (!spiInitialized) {
       SPI.begin();
+      SPI.beginTransaction(DAC_SPI_SETTINGS);
       spiInitialized = true;
     }
   }

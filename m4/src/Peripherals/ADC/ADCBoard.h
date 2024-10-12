@@ -81,8 +81,7 @@ class ADCBoard {
   }
 
  public:
-  inline static PeripheralCommsController1 commsController =
-      PeripheralCommsController1(ADC_SPI_SETTINGS);
+  inline static PeripheralCommsController1 commsController;
 
   ADCBoard(int cs_pin, int data_ready_pin, int reset_pin)
       : cs_pin(cs_pin), data_ready_pin(data_ready_pin), reset_pin(reset_pin) {}

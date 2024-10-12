@@ -27,6 +27,8 @@ void setup() {
   UserIOHandler::setup();
 
   PeripheralCommsController::setup();
+  PeripheralCommsController1::setup();
+
 
   for (int i : dac_cs_pins) {
     DACController::addChannel(i);
