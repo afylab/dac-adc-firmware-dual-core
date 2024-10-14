@@ -82,6 +82,7 @@ class ADCBoard {
 
  public:
   inline static PeripheralCommsController1 commsController;
+  bool data_ready = false;
 
   ADCBoard(int cs_pin, int data_ready_pin, int reset_pin)
       : cs_pin(cs_pin), data_ready_pin(data_ready_pin), reset_pin(reset_pin) {}
@@ -100,6 +101,10 @@ class ADCBoard {
   }
 
   void initialize() {}
+
+  int getDataReadyPin() const { return data_ready_pin; }
+
+  void setReadyFlag() { data_ready = true; }
 
   double readVoltage(int channel_index) {
     startSingleConversion(channel_index);
@@ -275,11 +280,13 @@ class ADCBoard {
 
   // chop = true
   float setConversionTime(int channel, float time_us) {
-    return setConversionTimeFloat(channel, time_us, isMoreThanOneChannelActive());
+    return setConversionTimeFloat(channel, time_us,
+                                  isMoreThanOneChannelActive());
   }
 
   // chop = true
-  float setConversionTimeFloat(int channel, float time_us, bool moreThanOneChannelActive) {
+  float setConversionTimeFloat(int channel, float time_us,
+                               bool moreThanOneChannelActive) {
     return setConversionTime(
         channel, true,
         calculateFilterWord(time_us, true, moreThanOneChannelActive),
@@ -373,7 +380,7 @@ class ADCBoard {
 
   void zeroScaleSelfCalibration() {
     byte data[2];
-    data[0] = WRITE | ADDR_MODE(0); // channel is zero but this is system-wide
+    data[0] = WRITE | ADDR_MODE(0);  // channel is zero but this is system-wide
     data[1] = ZERO_SCALE_SELF_CAL_MODE;
     digitalWrite(cs_pin, LOW);
     commsController.transfer(data, 2);

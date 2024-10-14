@@ -44,6 +44,8 @@ class DACController {
   }
 
   inline static void setup() {
+    pinMode(ldac, OUTPUT);
+    digitalWrite(ldac, HIGH);
     initializeRegistry();
     for (auto channel : dac_channels) {
       channel.setup();

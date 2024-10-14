@@ -54,8 +54,6 @@ class DACChannel {
   void setup() {
     pinMode(cs_pin, OUTPUT);
     digitalWrite(cs_pin, HIGH);
-    pinMode(ldac, OUTPUT);
-    digitalWrite(ldac, HIGH);
   }
 
   float setVoltage(float v) {

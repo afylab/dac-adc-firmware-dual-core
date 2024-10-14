@@ -21,11 +21,30 @@ class ADCController {
   }
 
   inline static void setup() {
+    pinMode(adc_sync, OUTPUT);
+    digitalWrite(adc_sync, LOW);
     initializeRegistry();
     for (auto board : adc_boards) {
       board.setup();
+      // int drdy = board.getDataReadyPin();
+      attachInterrupt(
+        digitalPinToInterrupt(47),
+        []() { setReadyFlag(0); },
+        FALLING);
+      attachInterrupt(
+        digitalPinToInterrupt(48),
+        []() { setReadyFlag(1); },
+        FALLING);
     }
   }
+
+  inline static void setReadyFlag(int i) {
+    adc_boards[i].setReadyFlag();
+  }
+
+  inline static bool getReadyFlag(int i) { return adc_boards[i].data_ready; }
+
+  inline static void clearReadyFlag(int i) { adc_boards[i].data_ready = false; }
 
   static void initializeRegistry() {
     registerMemberFunction(readChannelVoltage, "GET_ADC");
@@ -68,6 +87,11 @@ class ADCController {
     } else {
       return OperationResult::Failure("Invalid channel index");
     }
+  }
+
+  inline static void toggleSync() {
+    digitalWrite(adc_sync, HIGH);
+    digitalWrite(adc_sync, LOW);
   }
 
   inline static float getVoltage(int channel_index) {

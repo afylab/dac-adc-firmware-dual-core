@@ -19,8 +19,7 @@ class God {
     registerMemberFunctionVector(dacLedBufferRampWrapper,
                                  "DAC_LED_BUFFER_RAMP");
     registerMemberFunction(dacChannelCalibration, "DAC_CH_CAL");
-    registerMemberFunctionVector(boxcarAverageRamp,
-                                 "BOXCAR_BUFFER_RAMP");
+    registerMemberFunctionVector(boxcarAverageRamp, "BOXCAR_BUFFER_RAMP");
   }
 
   // args:
@@ -106,23 +105,23 @@ class God {
     }
 
     while (x < saved_data_size && !getStopFlag()) {
-      if (TimingUtil::adcFlag) {
-        if (steps <= 1) {
-          for (int i = 0; i < numAdcChannels; i++) {
+      for (int i = 0; i < numAdcChannels; i++) {
+        if (ADCController::getReadyFlag(adcChannels[i])) {
+          ADCController::clearReadyFlag(adcChannels[i]);
+          if (steps <= 1) {
             ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+          } else {
+            float* packets = new float[numAdcChannels];
+            for (int i = 0; i < numAdcChannels; i++) {
+              float v =
+                  ADCController::getVoltageDataNoTransaction(adcChannels[i]);
+              packets[i] = v;
+            }
+            m4SendVoltage(packets, numAdcChannels);
+            delete[] packets;
+            x++;
           }
-        } else {
-          float* packets = new float[numAdcChannels];
-          for (int i = 0; i < numAdcChannels; i++) {
-            float v =
-                ADCController::getVoltageDataNoTransaction(adcChannels[i]);
-            packets[i] = v;
-          }
-          m4SendVoltage(packets, numAdcChannels);
-          delete[] packets;
-          x++;
         }
-        TimingUtil::adcFlag = false;
       }
       if (TimingUtil::dacFlag && steps < numSteps + 1) {
         if (steps == 0) {
@@ -292,7 +291,7 @@ class God {
         } else {
           for (int i = 0; i < numDacChannels; i++) {
             DACController::setVoltageNoTransactionNoLdac(dacChannels[i],
-                                                          previousVoltageSet[i]);
+                                                         previousVoltageSet[i]);
             previousVoltageSet[i] += voltageStepSize[i];
           }
         }
@@ -343,8 +342,7 @@ class God {
   // numAdcMeasuresPerDacStep, numAdcAverages, numAdcConversionSkips,
   // adcConversionTime_us, {for each dac channel: dac channel, v0_1, vf_1, v0_2,
   // vf_2}, {for each adc channel: adc channel}
-  static OperationResult boxcarAverageRamp(
-      const std::vector<float>& args) {
+  static OperationResult boxcarAverageRamp(const std::vector<float>& args) {
     size_t currentIndex = 0;
 
     int numDacChannels = static_cast<int>(args[currentIndex++]);
@@ -382,8 +380,8 @@ class God {
                                           numAdcChannels > 1);
     }
 
-    uint32_t dacPeriod_us =
-        (numAdcMeasuresPerDacStep + numAdcConversionSkips) * (actualConversionTime_us + 5) * numAdcChannels;
+    uint32_t dacPeriod_us = (numAdcMeasuresPerDacStep + numAdcConversionSkips) *
+                            (actualConversionTime_us + 5) * numAdcChannels;
 
     setStopFlag(false);
     PeripheralCommsController::dataLedOn();
@@ -409,7 +407,7 @@ class God {
     int steps = 0;
     int totalSteps = 2 * numDacSteps * numAdcAverages + 1;
     int x = 0;
-    int total_data_size = (totalSteps-1) * numAdcMeasuresPerDacStep;
+    int total_data_size = (totalSteps - 1) * numAdcMeasuresPerDacStep;
     int adcGetsSinceLastDacSet = 0;
 
     for (int i = 0; i < numAdcChannels; ++i) {
@@ -419,7 +417,7 @@ class God {
     TimingUtil::setupTimersTimeSeries(dacPeriod_us, actualConversionTime_us);
 
     while (x < total_data_size && !getStopFlag()) {
-      if (TimingUtil::adcFlag && x < (steps-1) * numAdcMeasuresPerDacStep) {
+      if (TimingUtil::adcFlag && x < (steps - 1) * numAdcMeasuresPerDacStep) {
         if (steps <= 1) {
           for (int i = 0; i < numAdcChannels; i++) {
             ADCController::getVoltageDataNoTransaction(adcChannels[i]);
