@@ -5,4 +5,4 @@
 .vscode/ipch
 *.cache*
 *.ccls*
-*compile_commands*
+*compile_commands.json
