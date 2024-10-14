@@ -22,6 +22,8 @@ This firmware is comprised of two individual PlatformIO projects, one for the M7
 
 ## Usage
 
+Note: If you have any issues with linting/LSP with (neo)vim then try running `pio run -t compiledb` in both the /m7 and m4 directories. 
+
 [A full guide on the code structure is being developed and can currently be found here](https://share.note.sx/n340o95a#1ld68Rexy9NMUivdsulvSYpptsx1KMYcsj4a4mlvtj4). The location of these docs may change in the future, but a link to the newest docs will always be on this GitHub repository.
 
 
