@@ -256,13 +256,13 @@ class God {
     if (numDacChannels < 1 || numAdcChannels < 1) {
       return OperationResult::Failure("Invalid number of channels");
     }
-    for (int i = 0; i < numAdcChannels; i++) {
-      if (dac_settling_time_us <
-          ADCController::getConversionTimeFloat(adcChannels[i])) {
-        return OperationResult::Failure(
-            "DAC settling time too short for ADC conversion time");
-      }
-    }
+    // for (int i = 0; i < numAdcChannels; i++) {
+    //   if (dac_settling_time_us <
+    //       ADCController::getConversionTimeFloat(adcChannels[i])) {
+    //     return OperationResult::Failure(
+    //         "DAC settling time too short for ADC conversion time");
+    //   }
+    // }
     // uint32_t adc_comms_period_us = (1.0/SPI_SPEED)*1e6*8*4; // 8 bits per
     // byte, 4 bytes per ADC conversion if
     // (numAdcChannels*numAdcAverages*adc_comms_period_us > dac_interval_us -
@@ -327,7 +327,8 @@ class God {
             float v = total * numAdcAveragesInv;
             packets[i] = v;
           }
-          m4SendFloat(packets, numAdcChannels);
+          // m4SendFloat(packets, numAdcChannels); // only for debug, not for labrad
+          m4SendVoltage(packets, numAdcChannels);
           delete[] packets;
           x++;
         }
