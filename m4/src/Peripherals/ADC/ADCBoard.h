@@ -206,13 +206,13 @@ class ADCBoard {
   }
 
   uint32_t getConversionDataNoTransaction(int adc_channel) {
-    byte data_array;
+    byte data[4];
 
     // setup communication register for reading channel data
-    data_array = READ | ADDR_CHANNELDATA(adc_channel);
-
-    byte data[4];
-    data[0] = data_array;
+    data[0] = READ | ADDR_CHANNELDATA(adc_channel);
+    data[1] = 0;
+    data[2] = 0;
+    data[3] = 0;
 
     // write to the communication register
     digitalWrite(cs_pin, LOW);
